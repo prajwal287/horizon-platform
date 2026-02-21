@@ -1,0 +1,14 @@
+# Copy this file to terraform.tfvars to override defaults (optional).
+# From project root: cp terraform/terraform.tfvars.example terraform/terraform.tfvars
+
+# GCP project: Horizon-platform (project_id: horizon-platform-488122)
+project_id   = "horizon-platform-488122"
+project_name = "Horizon-platform"
+
+# Optional: override other defaults
+# region     = "us-central1"
+# gcs_bucket_name       = "job-lakehouse-raw"
+# bigquery_dataset_id   = "job_market_analysis"
+# pubsub_topic_name     = "job-stream-input"
+# service_account_name  = "lakehouse-sa"
+# lifecycle_nearline_days = 90
