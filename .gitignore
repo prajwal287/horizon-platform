@@ -5,6 +5,12 @@ terraform/*.tfstate.*
 terraform/*.tfvars
 !terraform/*.tfvars.example
 
+# Docker / app
+data/
+secrets/
+.env
+.dlt/
+
 # OS
 .DS_Store
 Thumbs.db
