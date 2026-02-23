@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Horizon ingestion CLI: run one or all dlt pipelines (Hugging Face + Kaggle → GCS).
+Horizon ingestion CLI: run one or all dlt pipelines (Hugging Face + Kaggle → GCS Parquet). Step 1 of dlt → GCS → BigQuery.
 
 Usage:
   python run_ingestion.py --source all
@@ -9,8 +9,8 @@ Usage:
   python run_ingestion.py --source kaggle_linkedin
   python run_ingestion.py --source kaggle_linkedin_skills
 
-Requires GCS_BUCKET in environment (e.g. from Terraform: terraform -chdir=terraform output -raw gcs_bucket_name).
-For Kaggle sources, KAGGLE_USERNAME and KAGGLE_KEY are required.
+Requires GCS_BUCKET and GOOGLE_CLOUD_PROJECT (or GCP_PROJECT). Step 2: run scripts/load_gcs_to_bigquery.py to load GCS Parquet → BigQuery.
+For Kaggle sources, KAGGLE_USERNAME and KAGGLE_API_TOKEN (or KAGGLE_KEY) are required.
 """
 import argparse
 import logging
@@ -53,7 +53,7 @@ def run_kaggle_linkedin_skills() -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Run Horizon ingestion pipelines (dlt → GCS).",
+        description="Run Horizon ingestion pipelines (dlt → GCS Parquet). Step 2: load_gcs_to_bigquery.py.",
     )
     parser.add_argument(
         "--source",
@@ -65,7 +65,10 @@ def main() -> int:
 
     import os
     if not os.environ.get("GCS_BUCKET"):
-        logger.error("GCS_BUCKET environment variable is required. Set it or use .env (see .env.example).")
+        logger.error("GCS_BUCKET is required for dlt → GCS. Set it or use .env (see .env.example).")
+        return 1
+    if not (os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("GCP_PROJECT")):
+        logger.error("GOOGLE_CLOUD_PROJECT (or GCP_PROJECT) is required. Set it or use .env.")
         return 1
 
     if args.source == "all":

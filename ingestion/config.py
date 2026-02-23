@@ -1,9 +1,12 @@
-"""Ingestion config: GCS bucket, paths, cutoff date, domain keywords."""
+"""Ingestion config: GCS bucket, BigQuery dataset, paths, cutoff date, domain keywords."""
 import os
 from datetime import datetime, timezone, timedelta
 from typing import List
 
-# Required: set by Docker or env
+# BigQuery: primary destination for ingestion (from Terraform: job_market_analysis)
+BIGQUERY_DATASET: str = os.environ.get("BIGQUERY_DATASET", "job_market_analysis")
+
+# GCS: required for step 1 (dlt → GCS Parquet); also used by load_gcs_to_bigquery.py
 GCS_BUCKET: str = os.environ.get("GCS_BUCKET", "")
 GCS_PREFIX: str = os.environ.get("GCS_PREFIX", "raw")
 
@@ -47,3 +50,8 @@ def get_gcs_base_url() -> str:
     if not GCS_BUCKET:
         raise ValueError("GCS_BUCKET environment variable is required")
     return f"gs://{GCS_BUCKET.strip('/')}/{GCS_PREFIX.strip('/')}"
+
+
+def get_bigquery_dataset() -> str:
+    """BigQuery dataset for raw/silver tables (e.g. job_market_analysis)."""
+    return BIGQUERY_DATASET.strip() or "job_market_analysis"

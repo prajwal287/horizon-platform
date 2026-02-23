@@ -6,15 +6,15 @@ services:
       - ./secrets:/app/secrets
       # Use host's gcloud Application Default Credentials (no manual key file)
       - ${HOME}/.config/gcloud:/app/gcloud:ro
-    # Load .env so container gets GCS_BUCKET, GOOGLE_CLOUD_PROJECT, KAGGLE_USERNAME, KAGGLE_API_TOKEN (copy .env.example to .env)
+    # Load .env so container gets GOOGLE_CLOUD_PROJECT, BIGQUERY_DATASET, KAGGLE_* (copy .env.example to .env)
     env_file:
       - path: .env
         required: false
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/gcloud/application_default_credentials.json
-      # GCP project (required for GCS/BigQuery; e.g. terraform -chdir=terraform output -raw project_id)
       - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-${GCP_PROJECT:-}}
       - GCS_BUCKET=${GCS_BUCKET:-}
+      - BIGQUERY_DATASET=${BIGQUERY_DATASET:-job_market_analysis}
       - KAGGLE_USERNAME=${KAGGLE_USERNAME:-}
       - KAGGLE_KEY=${KAGGLE_KEY:-}
       - KAGGLE_API_TOKEN=${KAGGLE_API_TOKEN:-}

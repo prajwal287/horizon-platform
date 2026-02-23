@@ -1,4 +1,4 @@
-"""dlt pipeline: Hugging Face data_jobs → GCS (Parquet), full replace."""
+"""dlt pipeline: Hugging Face data_jobs → GCS (Parquet), full replace. Step 1 of dlt → GCS → BigQuery."""
 import logging
 import os
 from typing import Iterator
@@ -14,16 +14,30 @@ PIPELINE_NAME = "horizon_huggingface_data_jobs"
 TABLE_NAME = "jobs"
 DATASET_NAME = "huggingface_data_jobs"
 
+JOBS_COLUMNS = {
+    "source_id": {"data_type": "text"},
+    "source_name": {"data_type": "text"},
+    "job_title": {"data_type": "text"},
+    "job_description": {"data_type": "text"},
+    "company_name": {"data_type": "text"},
+    "location": {"data_type": "text"},
+    "posted_date": {"data_type": "date"},
+    "job_url": {"data_type": "text"},
+    "skills": {"data_type": "json"},
+    "salary_info": {"data_type": "text"},
+    "ingested_at": {"data_type": "timestamp"},
+}
 
-def _jobs_resource() -> Iterator[dict]:
-    """dlt resource: yields one row per call from HF stream batches."""
+
+@dlt.resource(name=TABLE_NAME, write_disposition="replace", columns=JOBS_COLUMNS)
+def jobs_resource() -> Iterator[dict]:
     for batch in stream_huggingface_data_jobs():
         for row in batch:
             yield row
 
 
 def run() -> dlt.Pipeline:
-    """Run Hugging Face → GCS pipeline (full replace). Uses ADC for GCS."""
+    """Run Hugging Face → GCS (Parquet). Uses ADC for GCS."""
     bucket_base = get_gcs_base_url()
     bucket_url = f"{bucket_base.rstrip('/')}/{DATASET_NAME}"
     os.environ["DESTINATION__FILESYSTEM__BUCKET_URL"] = bucket_url
@@ -33,11 +47,6 @@ def run() -> dlt.Pipeline:
         destination="filesystem",
         dataset_name=DATASET_NAME,
     )
-    load_info = pipeline.run(
-        _jobs_resource(),
-        table_name=TABLE_NAME,
-        write_disposition="replace",
-        loader_file_format="parquet",
-    )
+    load_info = pipeline.run(jobs_resource(), loader_file_format="parquet")
     logger.info("Hugging Face pipeline load_info: %s", load_info)
     return pipeline
