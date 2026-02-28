@@ -18,9 +18,10 @@ provider "google" {
 # GCS Bucket - Raw data landing (Standard, lifecycle to Nearline after 90 days)
 # ---------------------------------------------------------------------------
 resource "google_storage_bucket" "raw" {
-  name     = "${var.project_id}-${var.gcs_bucket_name}"
-  location = var.region
+  name          = "${var.project_id}-${var.gcs_bucket_name}"
+  location      = var.region
   storage_class = "STANDARD"
+  force_destroy = true
 
   lifecycle_rule {
     condition {
