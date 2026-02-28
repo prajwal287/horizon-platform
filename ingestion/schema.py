@@ -5,6 +5,22 @@ from typing import Any, List, Optional
 from pydantic import BaseModel, Field
 
 
+# dlt column spec for the jobs table (used by all pipelines)
+JOBS_COLUMNS = {
+    "source_id": {"data_type": "text"},
+    "source_name": {"data_type": "text"},
+    "job_title": {"data_type": "text"},
+    "job_description": {"data_type": "text"},
+    "company_name": {"data_type": "text"},
+    "location": {"data_type": "text"},
+    "posted_date": {"data_type": "date"},
+    "job_url": {"data_type": "text"},
+    "skills": {"data_type": "json"},
+    "salary_info": {"data_type": "text"},
+    "ingested_at": {"data_type": "timestamp"},
+}
+
+
 class RawJobRow(BaseModel):
     """Canonical raw job posting row; all sources map into this."""
 

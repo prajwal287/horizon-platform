@@ -54,15 +54,16 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[run_kaggle_data_engineer.run] --> B[get_gcs_base_url]
-    B --> C[Set DESTINATION__FILESYSTEM__BUCKET_URL]
-    C --> D[dlt.pipeline destination=filesystem]
-    D --> E[pipeline.run with _jobs_resource]
-    E --> F[_jobs_resource: stream_kaggle_data_engineer_2023]
-    F --> G[Download Kaggle dataset to /app/data]
-    G --> H[Read CSV in chunks, filter, yield rows]
-    H --> I[dlt writes Parquet to GCS]
-    I --> J[Return pipeline]
+    A[run_kaggle_data_engineer.run] --> B[run_pipeline in common.py]
+    B --> C[get_gcs_base_url]
+    C --> D[Set DESTINATION__FILESYSTEM__BUCKET_URL]
+    D --> E[dlt.pipeline destination=filesystem]
+    E --> F[pipeline.run with jobs_resource]
+    F --> G[jobs_resource: stream_kaggle_data_engineer_2023]
+    G --> H[Download Kaggle dataset to /app/data]
+    H --> I[Read CSV in chunks, filter, yield rows]
+    I --> J[dlt writes Parquet to GCS]
+    J --> K[Return pipeline]
 ```
 
 ---

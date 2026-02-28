@@ -11,6 +11,15 @@ secrets/
 .env
 .dlt/
 
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Generated / eval outputs
+comparison_skills.csv
+
 # OS
 .DS_Store
 Thumbs.db

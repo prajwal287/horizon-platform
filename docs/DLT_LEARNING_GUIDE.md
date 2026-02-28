@@ -84,13 +84,13 @@ def jobs_resource() -> Iterator[dict]:
 
 You create a **pipeline** with a **name**, **destination**, and **dataset**. Then you `run()` one or more resources.
 
-**From the same file**:
+**In** `ingestion/pipelines/common.py`:
 
 ```python
 pipeline = dlt.pipeline(
-    pipeline_name=PIPELINE_NAME,
+    pipeline_name=pipeline_name,
     destination="filesystem",
-    dataset_name=DATASET_NAME,
+    dataset_name=dataset_name,
 )
 load_info = pipeline.run(jobs_resource(), loader_file_format="parquet")
 ```
@@ -133,9 +133,9 @@ Your pipelines use `replace` so each run overwrites the previous table — safe 
 
 ### 5.5 Schema (columns)
 
-You pass a **columns** dict so dlt knows types and names (and can write correct Parquet/BigQuery types):
+You pass a **columns** dict so dlt knows types and names (and can write correct Parquet/BigQuery types). In Horizon this is defined **once** in `ingestion/schema.py` as **JOBS_COLUMNS** and used by all pipelines:
 
-**From** `run_kaggle_data_engineer.py`:
+**In** `ingestion/schema.py`:
 
 ```python
 JOBS_COLUMNS = {
@@ -160,7 +160,7 @@ JOBS_COLUMNS = {
 ## 6. End-to-end flow in Horizon (recap)
 
 1. **Source** (e.g. `ingestion/sources/kaggle_data_engineer_2023.py`): Download CSV, normalize, filter, yield **batches of dicts**.
-2. **Resource** (e.g. `jobs_resource`): Generator that yields those dicts; decorated with `@dlt.resource(..., write_disposition="replace", columns=...)`.
+2. **Resource** (built in `ingestion/pipelines/common.run_pipeline`): Generator that yields those dicts; uses `JOBS_COLUMNS` from `ingestion/schema.py` and `@dlt.resource(..., write_disposition="replace", columns=...)`.
 3. **Pipeline**: `dlt.pipeline(destination="filesystem", dataset_name=...)` with `DESTINATION__FILESYSTEM__BUCKET_URL=gs://...`.
 4. **Run**: `pipeline.run(jobs_resource(), loader_file_format="parquet")` → dlt writes Parquet to GCS.
 5. **Step 2** (outside dlt): `scripts/load_gcs_to_bigquery.py` loads that Parquet into BigQuery.
@@ -171,8 +171,8 @@ So: **dlt = “source → GCS (Parquet)”**; your script = “GCS → BigQuery�
 
 ## 7. Quick learning path
 
-1. **Read one pipeline**  
-   Open `ingestion/pipelines/run_kaggle_data_engineer.py` and follow: resource → pipeline → run.
+1. **Read the pipeline flow**  
+   Open `ingestion/pipelines/run_kaggle_data_engineer.py` (thin wrapper), then `ingestion/pipelines/common.py` (shared runner) and `ingestion/schema.py` (JOBS_COLUMNS). Follow: run_pipeline → resource → pipeline.run.
 
 2. **Run it**  
    Set `GCS_BUCKET`, `GOOGLE_APPLICATION_CREDENTIALS`, then:  
@@ -180,10 +180,10 @@ So: **dlt = “source → GCS (Parquet)”**; your script = “GCS → BigQuery�
    Check GCS for Parquet under `gs://BUCKET/raw/kaggle_data_engineer_2023/`.
 
 3. **Change one thing**  
-   e.g. add a column to `JOBS_COLUMNS` and a field in the dict your source yields; re-run and inspect Parquet/BQ.
+   e.g. add a column to `JOBS_COLUMNS` in `ingestion/schema.py` and a field in the dict your source yields; re-run and inspect Parquet/BQ.
 
 4. **Try another destination**  
-   In a branch or copy, switch to `destination="bigquery"` and run (with BQ credentials) to see the same resource land in BigQuery.
+   In a branch or copy, switch to `destination="bigquery"` in `common.run_pipeline` and run (with BQ credentials) to see the same resource land in BigQuery.
 
 5. **Optional**  
    Skim [dlt docs](https://dlthub.com/docs) for: incremental loading, merge, and custom normalizers when you need them.

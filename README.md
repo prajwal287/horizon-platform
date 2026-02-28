@@ -67,8 +67,18 @@ For other Kaggle sources: `kaggle_linkedin`, `kaggle_linkedin_skills`.
 ## Project layout
 
 - **terraform/** — GCP IaC (GCS, BigQuery, Pub/Sub, service account).
-- **ingestion/** — dlt pipelines (step 1: write Parquet to GCS).
-- **scripts/** — `inspect_kaggle_csv.py`, `load_gcs_to_bigquery.py` (step 2: GCS → BigQuery).
+- **ingestion/** — dlt pipelines (step 1: write Parquet to GCS). Shared runner and schema in `ingestion/pipelines/common.py` and `ingestion/schema.py`.
+- **scripts/** — `load_gcs_to_bigquery.py` (step 2: GCS → BigQuery), `create_master_table.py` (master_jobs view/table), `compare_skills_extraction.py` (eval), `inspect_kaggle_csv.py` (dev helper).
 - **run_ingestion.py** — CLI for step 1 (dlt → GCS).
+
+## Documentation
+
+- [How to run scripts](docs/RUN_SCRIPTS.md) — Step-by-step run guide (ingestion, load to BQ, master table, skills comparison).
+- [End-to-end execution & learning](docs/END_TO_END_EXECUTION_AND_LEARNING.md) — Pipeline flow, mental model, troubleshooting.
+- [Codebase explained](docs/CODEBASE_EXPLAINED.md) — Conceptual guide (Docker, GCP, secrets, flow).
+- [Flowcharts](docs/CODEBASE_FLOWCHARTS.md) — Mermaid diagrams (run_ingestion, Docker, pipelines).
+- [Evaluate skills extraction](docs/EVALUATE_SKILLS_EXTRACTION.md) — Taxonomy vs LLM comparison.
+- [dlt learning guide](docs/DLT_LEARNING_GUIDE.md) — dlt concepts with repo examples.
+- [Terraform learning guide](docs/TERRAFORM_LEARNING_GUIDE.md) — Terraform concepts with repo examples.
 
 See [terraform/README.md](terraform/README.md) for infrastructure setup.
