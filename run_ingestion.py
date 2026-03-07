@@ -9,7 +9,7 @@ Usage:
   python run_ingestion.py --source all
   python run_ingestion.py --source kaggle_data_engineer   # or huggingface, kaggle_linkedin, kaggle_linkedin_skills
 
-Requires: GCS_BUCKET, GOOGLE_CLOUD_PROJECT (or GCP_PROJECT). Kaggle: KAGGLE_USERNAME, KAGGLE_KEY.
+Requires: GCS_BUCKET, GOOGLE_CLOUD_PROJECT (or GCP_PROJECT). Kaggle: KAGGLE_USERNAME, KAGGLE_KEY. Jobven: JOBVEN_API_KEY (optional; free tier 300 calls/month).
 """
 import argparse
 import logging
@@ -53,6 +53,7 @@ SOURCES = [
     "kaggle_data_engineer",
     "kaggle_linkedin",
     "kaggle_linkedin_skills",
+    "jobven",
 ]
 
 
@@ -73,6 +74,11 @@ def run_kaggle_linkedin() -> None:
 
 def run_kaggle_linkedin_skills() -> None:
     from ingestion.pipelines.run_kaggle_linkedin_skills import run
+    run()
+
+
+def run_jobven() -> None:
+    from ingestion.pipelines.run_jobven import run
     run()
 
 
@@ -105,6 +111,7 @@ def main() -> int:
         "kaggle_data_engineer": run_kaggle_data_engineer,
         "kaggle_linkedin": run_kaggle_linkedin,
         "kaggle_linkedin_skills": run_kaggle_linkedin_skills,
+        "jobven": run_jobven,
     }
 
     for name in to_run:

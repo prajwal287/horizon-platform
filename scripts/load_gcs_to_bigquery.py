@@ -27,6 +27,7 @@ SOURCE_TO_GCS_AND_TABLE = {
     "kaggle_data_engineer": ("kaggle_data_engineer_2023", "raw_kaggle_data_engineer_2023"),
     "kaggle_linkedin": ("kaggle_linkedin_postings", "raw_kaggle_linkedin_postings"),
     "kaggle_linkedin_skills": ("kaggle_linkedin_jobs_skills_2024", "raw_kaggle_linkedin_jobs_skills_2024"),
+    "jobven": ("jobven_jobs", "raw_jobven_jobs"),
 }
 
 

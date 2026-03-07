@@ -34,6 +34,7 @@ _RAW_TABLES = [
     "raw_kaggle_data_engineer_2023",
     "raw_kaggle_linkedin_postings",
     "raw_kaggle_linkedin_jobs_skills_2024",
+    "raw_jobven_jobs",
 ]
 
 # One branch of the clean union (same SELECT for each table).

@@ -7,7 +7,7 @@ Run all commands from the **project root**: `horizon-platform/`
 - **Resume (data already in GCS/BigQuery):** [RUN_FROM_INTERMEDIATE.md](RUN_FROM_INTERMEDIATE.md) — run from where you left off.
 
 **Minimal path to data in BigQuery:**
-1. Set `GCS_BUCKET`, `GOOGLE_CLOUD_PROJECT`; for Kaggle add `KAGGLE_USERNAME` + `KAGGLE_KEY`.
+1. Set `GCS_BUCKET`, `GOOGLE_CLOUD_PROJECT`; for Kaggle add `KAGGLE_USERNAME` + `KAGGLE_KEY`; for Jobven (optional) add `JOBVEN_API_KEY`.
 2. `python run_ingestion.py --source kaggle_data_engineer`
 3. `python scripts/load_gcs_to_bigquery.py --source kaggle_data_engineer`
 
@@ -28,13 +28,16 @@ export BIGQUERY_DATASET=job_market_analysis
 # Required for Kaggle sources (all 3 Kaggle pipelines need this)
 export KAGGLE_USERNAME=your_kaggle_username
 export KAGGLE_KEY=your_kaggle_api_key
+
+# Optional: Jobven (US jobs, last 24h; free tier 300 calls/month)
+# export JOBVEN_API_KEY=your_jobven_api_key
 ```
 
 Ensure GCP auth: `gcloud auth application-default login`.
 
 **Step 2 – Ingest all sources to GCS (Parquet)**
 
-This runs all four pipelines: Hugging Face + Kaggle Data Engineer + Kaggle LinkedIn + Kaggle LinkedIn Skills.
+This runs all pipelines: Hugging Face + Kaggle Data Engineer + Kaggle LinkedIn + Kaggle LinkedIn Skills + Jobven (if `JOBVEN_API_KEY` is set).
 
 ```bash
 python3 run_ingestion.py --source all
@@ -42,7 +45,7 @@ python3 run_ingestion.py --source all
 
 **Step 3 – Load all Parquet from GCS into BigQuery**
 
-Creates or replaces raw tables: `raw_huggingface_data_jobs`, `raw_kaggle_data_engineer_2023`, `raw_kaggle_linkedin_postings`, `raw_kaggle_linkedin_jobs_skills_2024`.
+Creates or replaces raw tables: `raw_huggingface_data_jobs`, `raw_kaggle_data_engineer_2023`, `raw_kaggle_linkedin_postings`, `raw_kaggle_linkedin_jobs_skills_2024`, and (if ingested) `raw_jobven_jobs`.
 
 ```bash
 python3 scripts/load_gcs_to_bigquery.py --source all
@@ -68,7 +71,9 @@ python3 scripts/create_master_table.py --clean --create-table
 python3 scripts/create_master_table.py --clean --materialize
 ```
 
-**Summary:** `run_ingestion.py --source all` → `load_gcs_to_bigquery.py --source all` → (optional) `create_master_table.py`. To run only one source, use `--source huggingface`, `--source kaggle_data_engineer`, etc., for both commands.
+**Summary:** `run_ingestion.py --source all` → `load_gcs_to_bigquery.py --source all` → (optional) `create_master_table.py`. To run only one source, use `--source huggingface`, `--source kaggle_data_engineer`, `--source jobven`, etc., for both commands.
+
+**Jobven (free tier only):** Set `JOBVEN_API_KEY` to enable. Fetches US jobs from the last 24h (query: "data engineer"). Free tier: 10 jobs per page, 300 API calls/month; the pipeline caps at 3 pages per run (~30 jobs) so a daily run stays within limit.
 
 ---
 
