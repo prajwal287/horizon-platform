@@ -48,13 +48,58 @@ Creates or replaces raw tables: `raw_huggingface_data_jobs`, `raw_kaggle_data_en
 python3 scripts/load_gcs_to_bigquery.py --source all
 ```
 
-**Step 4 (optional) – Master view**
+**Step 4 (optional) – Master table in BigQuery**
+
+Create the unified `master_jobs` view (or table) in BigQuery. Requires `GOOGLE_CLOUD_PROJECT` (or `GCP_PROJECT`) and `BIGQUERY_DATASET`.
 
 ```bash
+# View (default): simple union of all raw tables
 python3 scripts/create_master_table.py
+
+# View with consistent types + is_complete (recommended for analytics)
+python3 scripts/create_master_table.py --clean
+
+# Materialized table (faster queries; run once to create, then refresh)
+python3 scripts/create_master_table.py --create-table
+python3 scripts/create_master_table.py --materialize
+
+# Materialized clean table (consistent types + is_complete)
+python3 scripts/create_master_table.py --clean --create-table
+python3 scripts/create_master_table.py --clean --materialize
 ```
 
 **Summary:** `run_ingestion.py --source all` → `load_gcs_to_bigquery.py --source all` → (optional) `create_master_table.py`. To run only one source, use `--source huggingface`, `--source kaggle_data_engineer`, etc., for both commands.
+
+---
+
+## Add skills to raw_kaggle_data_engineer_2023 (from job description)
+
+Skills for the Kaggle Data Engineer 2023 dataset are **extracted from the job description** (and job title) during ingestion using a curated taxonomy (Python, SQL, Spark, AWS, etc.). To populate the `skills` column:
+
+**Step 1 – Re-run ingestion with skills extraction enabled**
+
+From project root:
+
+```bash
+export EXTRACT_SKILLS_TAXONOMY=1
+python3 run_ingestion.py --source kaggle_data_engineer
+```
+
+This reads the CSV, maps `Job_details.1` → job description, and runs taxonomy-based extraction on each row so Parquet in GCS includes a `skills` array.
+
+**Step 2 – Re-load that source into BigQuery**
+
+```bash
+python3 scripts/load_gcs_to_bigquery.py --source kaggle_data_engineer
+```
+
+After this, `raw_kaggle_data_engineer_2023` in BigQuery will have the `skills` column filled. No code changes are required; only the env var and re-run.
+
+---
+
+## When to use dbt for transformations
+
+Right now, transformations are done in SQL under `scripts/sql/` and by `create_master_table.py`. For when to introduce **dbt** (Silver/Gold layers, tests, incremental models, team workflow), see **[WHEN_TO_USE_DBT.md](WHEN_TO_USE_DBT.md)**.
 
 ---
 

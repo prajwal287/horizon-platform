@@ -13,7 +13,7 @@ from ingestion.sources.kaggle_download import KAGGLE_BASE, download_dataset
 
 logger = logging.getLogger(__name__)
 
-# Set to "1" or "true" to extract skills from title/description via taxonomy
+# Set to "1" or "true" to extract skills from job_description (and job_title) via taxonomy
 EXTRACT_SKILLS_TAXONOMY = os.environ.get("EXTRACT_SKILLS_TAXONOMY", "").strip().lower() in ("1", "true", "yes")
 
 DATASET = "lukkardata/data-engineer-job-postings-2023"
@@ -121,6 +121,7 @@ def _row_to_canonical(row: pd.Series, col_map: dict[str, str]) -> Optional[RawJo
     skills: Optional[List[str]] = None
     if EXTRACT_SKILLS_TAXONOMY:
         from ingestion.skills_extraction import extract_skills_taxonomy
+        # Extract from job description (primary) and job title using curated taxonomy
         skills = extract_skills_taxonomy(title, desc) or None
     return RawJobRow(
         source_id=SOURCE_ID,

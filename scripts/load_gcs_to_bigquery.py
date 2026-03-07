@@ -47,6 +47,8 @@ def load_source(bucket: str, prefix: str, project: str, dataset_id: str, table_i
     if not uris:
         logger.warning("No Parquet files under gs://%s/%s", bucket, prefix)
         return
+    # BigQuery requires full gs:// URIs; gcsfs.glob() may return paths without the scheme (e.g. bucket/path)
+    uris = [u if u.startswith("gs://") else f"gs://{u}" for u in uris]
     client_bq = bigquery.Client(project=project)
     table_ref = f"{project}.{dataset_id}.{table_id}"
     job_config = bigquery.LoadJobConfig(

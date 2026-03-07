@@ -3,11 +3,12 @@
 Create or refresh the BigQuery master_jobs view/table (union of all raw job tables).
 
 Requires GOOGLE_CLOUD_PROJECT (or GCP_PROJECT) and BIGQUERY_DATASET. Run after load_gcs_to_bigquery.py.
-SQL union is read from scripts/sql/master_jobs_view.sql (single source of truth).
 
 Usage:
-  python scripts/create_master_table.py [--materialize]
-  --materialize: create/refresh a table instead of a view (TRUNCATE + INSERT).
+  python scripts/create_master_table.py [--clean] [--materialize] [--create-table]
+  --clean:       use clean union (consistent types + is_complete) from master_jobs_clean_view.sql
+  --materialize: create/refresh a table instead of a view (TRUNCATE + INSERT)
+  --create-table: create empty master_jobs table then exit (use before first --materialize)
 """
 
 import argparse
@@ -27,9 +28,66 @@ logger = logging.getLogger(__name__)
 
 _SQL_DIR = Path(__file__).resolve().parent / "sql"
 
+# Raw tables we union (in order). Only tables that exist in the dataset are included.
+_RAW_TABLES = [
+    "raw_huggingface_data_jobs",
+    "raw_kaggle_data_engineer_2023",
+    "raw_kaggle_linkedin_postings",
+    "raw_kaggle_linkedin_jobs_skills_2024",
+]
 
-def _load_union_sql(project: str, dataset: str) -> str:
-    path = _SQL_DIR / "master_jobs_view.sql"
+# One branch of the clean union (same SELECT for each table).
+_CLEAN_SELECT = """
+    CAST(source_id AS STRING)       AS source_id,
+    CAST(source_name AS STRING)     AS source_name,
+    CAST(job_title AS STRING)       AS job_title,
+    CAST(job_description AS STRING) AS job_description,
+    CAST(company_name AS STRING)    AS company_name,
+    CAST(location AS STRING)        AS location,
+    CAST(posted_date AS DATE)       AS posted_date,
+    CAST(job_url AS STRING)         AS job_url,
+    skills,
+    CAST(COALESCE(salary_info, '') AS STRING) AS salary_info,
+    CAST(ingested_at AS TIMESTAMP)  AS ingested_at"""
+
+
+def _existing_raw_tables(client, project: str, dataset_id: str):
+    """Return subset of _RAW_TABLES that exist in the dataset."""
+    from google.cloud.bigquery import DatasetReference
+    dataset_ref = DatasetReference(project, dataset_id)
+    found = {t.table_id for t in client.list_tables(dataset_ref)}
+    return [t for t in _RAW_TABLES if t in found]
+
+
+def _build_union_sql(project: str, dataset_id: str, table_ids: list, clean: bool) -> str:
+    """Build union SQL from only the given raw table ids."""
+    if not table_ids:
+        return ""
+    qual = lambda t: f"`{project}.{dataset_id}.{t}`"
+    if clean:
+        branches = [
+            f"  SELECT\n{_CLEAN_SELECT}\n  FROM {qual(t)}"
+            for t in table_ids
+        ]
+        union_body = "\n  UNION ALL\n".join(branches)
+        return f"""WITH raw_union AS (
+{union_body}
+)
+SELECT
+  *,
+  (TRIM(COALESCE(job_title, '')) != ''
+   AND (TRIM(COALESCE(job_description, '')) != '' OR skills IS NOT NULL)) AS is_complete
+FROM raw_union"""
+    else:
+        return "\nUNION ALL\n".join(f"SELECT * FROM {qual(t)}" for t in table_ids)
+
+
+def _load_union_sql(project: str, dataset: str, clean: bool = False, table_ids: list = None) -> str:
+    """Load or build union SQL. If table_ids given, build from only those tables; else use SQL file."""
+    if table_ids is not None:
+        return _build_union_sql(project, dataset, table_ids, clean)
+    filename = "master_jobs_clean_view.sql" if clean else "master_jobs_view.sql"
+    path = _SQL_DIR / filename
     text = path.read_text().strip()
     return text.format(project=project, dataset=dataset)
 
@@ -46,6 +104,11 @@ def main() -> int:
         action="store_true",
         help="Create the master_jobs table (empty) then exit; use with --materialize to populate later",
     )
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Use clean union (consistent types + is_complete); reads master_jobs_clean_view.sql",
+    )
     args = parser.parse_args()
 
     project = os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("GCP_PROJECT", "").strip()
@@ -59,16 +122,34 @@ def main() -> int:
     client = bigquery.Client(project=project)
     ref = f"{project}.{dataset_id}.master_jobs"
 
+    existing = _existing_raw_tables(client, project, dataset_id)
+    if not existing:
+        logger.error(
+            "No raw tables found in %s.%s. Load data first, e.g.: python3 scripts/load_gcs_to_bigquery.py --source all",
+            project, dataset_id,
+        )
+        return 1
+    missing = [t for t in _RAW_TABLES if t not in existing]
+    if missing:
+        logger.info("Using %d raw table(s): %s (missing: %s)", len(existing), existing, missing or "none")
+
     if args.create_table:
-        create_sql = f"""
-        CREATE TABLE IF NOT EXISTS `{ref}` AS
-        SELECT * FROM `{project}.{dataset_id}.raw_huggingface_data_jobs` LIMIT 0
-        """
+        if args.clean:
+            union_sql = _load_union_sql(project, dataset_id, clean=True, table_ids=existing)
+            create_sql = f"CREATE TABLE IF NOT EXISTS `{ref}` AS\n{union_sql}\nLIMIT 0"
+        else:
+            first_table = existing[0]
+            create_sql = f"""
+            CREATE TABLE IF NOT EXISTS `{ref}` AS
+            SELECT * FROM `{project}.{dataset_id}.{first_table}` LIMIT 0
+            """
         client.query(create_sql).result()
         logger.info("Created table (if not exists) %s", ref)
         return 0
 
-    union_sql = _load_union_sql(project, dataset_id)
+    union_sql = _load_union_sql(project, dataset_id, clean=args.clean, table_ids=existing)
+    if args.clean:
+        logger.info("Using clean union (consistent types + is_complete)")
 
     if args.materialize:
         materialize_sql = f"TRUNCATE TABLE `{ref}`;\nINSERT INTO `{ref}`\n{union_sql}"
