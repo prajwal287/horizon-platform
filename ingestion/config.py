@@ -1,4 +1,6 @@
-"""Ingestion config: GCS bucket, BigQuery dataset, paths, cutoff date, domain keywords."""
+"""
+Config from env: GCS bucket, BigQuery dataset, paths. Also: cutoff date, domain keywords, and skills taxonomy for extraction.
+"""
 import os
 from datetime import datetime, timezone, timedelta
 from typing import List

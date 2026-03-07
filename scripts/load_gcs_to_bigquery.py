@@ -1,15 +1,9 @@
 #!/usr/bin/env python3
 """
-Step 2 of dlt → GCS → BigQuery: load Parquet files from GCS into BigQuery tables.
+Step 2: Load Parquet from GCS into BigQuery raw_* tables (WRITE_TRUNCATE). Run after run_ingestion.py.
 
-Run after run_ingestion.py (which writes Parquet to GCS). Requires GCS_BUCKET, GOOGLE_CLOUD_PROJECT, BIGQUERY_DATASET.
-
-Usage:
-  python scripts/load_gcs_to_bigquery.py --source all
-  python scripts/load_gcs_to_bigquery.py --source kaggle_data_engineer
-
-From project root or /app in Docker:
-  docker compose run --rm app python scripts/load_gcs_to_bigquery.py --source all
+Usage: python scripts/load_gcs_to_bigquery.py --source all | huggingface | kaggle_data_engineer | ...
+Requires: GCS_BUCKET, GOOGLE_CLOUD_PROJECT (or GCP_PROJECT), BIGQUERY_DATASET.
 """
 
 import argparse

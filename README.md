@@ -73,12 +73,11 @@ For other Kaggle sources: `kaggle_linkedin`, `kaggle_linkedin_skills`.
 
 ## Documentation
 
-- [How to run scripts](docs/RUN_SCRIPTS.md) — Step-by-step run guide (ingestion, load to BQ, master table, skills comparison).
-- [End-to-end execution & learning](docs/END_TO_END_EXECUTION_AND_LEARNING.md) — Pipeline flow, mental model, troubleshooting.
-- [Codebase explained](docs/CODEBASE_EXPLAINED.md) — Conceptual guide (Docker, GCP, secrets, flow).
-- [Flowcharts](docs/CODEBASE_FLOWCHARTS.md) — Mermaid diagrams (run_ingestion, Docker, pipelines).
-- [Evaluate skills extraction](docs/EVALUATE_SKILLS_EXTRACTION.md) — Taxonomy vs LLM comparison.
-- [dlt learning guide](docs/DLT_LEARNING_GUIDE.md) — dlt concepts with repo examples.
-- [Terraform learning guide](docs/TERRAFORM_LEARNING_GUIDE.md) — Terraform concepts with repo examples.
-
-See [terraform/README.md](terraform/README.md) for infrastructure setup.
+- **[RUN_SCRIPTS.md](docs/RUN_SCRIPTS.md)** — How to run: ingestion, load to BigQuery, master table, skills.
+- **[HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md)** — How the code works end-to-end (flow, which file does what).
+- **[RUN_FROM_SCRATCH.md](docs/RUN_FROM_SCRATCH.md)** — First-time setup: Terraform, GCP, then run pipeline.
+- **[RUN_FROM_INTERMEDIATE.md](docs/RUN_FROM_INTERMEDIATE.md)** — Resume from where you left off (no full re-run).
+- [MASTER_TABLE_SPEC.md](docs/MASTER_TABLE_SPEC.md) — Master table columns, adding skills, clean view.
+- [WHEN_TO_USE_DBT.md](docs/WHEN_TO_USE_DBT.md) — When to introduce dbt for transformations.
+- [EVALUATE_SKILLS_EXTRACTION.md](docs/EVALUATE_SKILLS_EXTRACTION.md) — Compare taxonomy vs LLM skills.
+- [terraform/README.md](terraform/README.md) — Infrastructure setup.

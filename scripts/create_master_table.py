@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-Create or refresh the BigQuery master_jobs view/table (union of all raw job tables).
+Build BigQuery master_jobs = union of all raw_* tables that exist. Run after load_gcs_to_bigquery.py.
 
-Requires GOOGLE_CLOUD_PROJECT (or GCP_PROJECT) and BIGQUERY_DATASET. Run after load_gcs_to_bigquery.py.
+Flow: List raw tables in dataset → build UNION SQL (simple or clean with is_complete) → CREATE VIEW or TABLE.
+Uses only tables that exist (no error if some sources were not loaded).
 
 Usage:
-  python scripts/create_master_table.py [--clean] [--materialize] [--create-table]
-  --clean:       use clean union (consistent types + is_complete) from master_jobs_clean_view.sql
-  --materialize: create/refresh a table instead of a view (TRUNCATE + INSERT)
-  --create-table: create empty master_jobs table then exit (use before first --materialize)
+  python scripts/create_master_table.py [--clean]              # view (clean = consistent types + is_complete)
+  python scripts/create_master_table.py --clean --create-table  # create empty table
+  python scripts/create_master_table.py --clean --materialize   # refresh table
+
+Requires: GOOGLE_CLOUD_PROJECT (or GCP_PROJECT), BIGQUERY_DATASET.
 """
 
 import argparse
@@ -25,8 +27,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
-
-_SQL_DIR = Path(__file__).resolve().parent / "sql"
 
 # Raw tables we union (in order). Only tables that exist in the dataset are included.
 _RAW_TABLES = [
@@ -82,14 +82,9 @@ FROM raw_union"""
         return "\nUNION ALL\n".join(f"SELECT * FROM {qual(t)}" for t in table_ids)
 
 
-def _load_union_sql(project: str, dataset: str, clean: bool = False, table_ids: list = None) -> str:
-    """Load or build union SQL. If table_ids given, build from only those tables; else use SQL file."""
-    if table_ids is not None:
-        return _build_union_sql(project, dataset, table_ids, clean)
-    filename = "master_jobs_clean_view.sql" if clean else "master_jobs_view.sql"
-    path = _SQL_DIR / filename
-    text = path.read_text().strip()
-    return text.format(project=project, dataset=dataset)
+def _union_sql(project: str, dataset: str, table_ids: list, clean: bool) -> str:
+    """Build union SQL from the given raw table ids (simple or clean with is_complete)."""
+    return _build_union_sql(project, dataset, table_ids, clean)
 
 
 def main() -> int:
@@ -107,7 +102,7 @@ def main() -> int:
     parser.add_argument(
         "--clean",
         action="store_true",
-        help="Use clean union (consistent types + is_complete); reads master_jobs_clean_view.sql",
+        help="Use clean union (consistent types + is_complete flag)",
     )
     args = parser.parse_args()
 
@@ -135,7 +130,7 @@ def main() -> int:
 
     if args.create_table:
         if args.clean:
-            union_sql = _load_union_sql(project, dataset_id, clean=True, table_ids=existing)
+            union_sql = _union_sql(project, dataset_id, existing, clean=True)
             create_sql = f"CREATE TABLE IF NOT EXISTS `{ref}` AS\n{union_sql}\nLIMIT 0"
         else:
             first_table = existing[0]
@@ -147,7 +142,7 @@ def main() -> int:
         logger.info("Created table (if not exists) %s", ref)
         return 0
 
-    union_sql = _load_union_sql(project, dataset_id, clean=args.clean, table_ids=existing)
+    union_sql = _union_sql(project, dataset_id, existing, args.clean)
     if args.clean:
         logger.info("Using clean union (consistent types + is_complete)")
 

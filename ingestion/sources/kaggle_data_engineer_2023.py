@@ -1,4 +1,7 @@
-"""Kaggle lukkardata/data-engineer-job-postings-2023: load, filter, yield batches."""
+"""
+Kaggle Data Engineer 2023: read CSV → map columns → RawJobRow per row (optional skills from taxonomy) → yield batches.
+Flow: download CSV if needed → read in chunks → _row_to_canonical() → batch of to_load_dict().
+"""
 import logging
 import os
 from datetime import date, datetime

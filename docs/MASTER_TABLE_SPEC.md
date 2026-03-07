@@ -80,19 +80,17 @@ The **final master table columns** are the same in both cases; only the row set 
 
 ## 5. Clean master view (consistent types + optional filter)
 
-Use the SQL in **`scripts/sql/master_jobs_clean_view.sql`** to create a view that:
+Use **`scripts/create_master_table.py --clean`** to create a view that:
 
-- Unions all four raw tables.
+- Unions all **existing** raw tables (only tables present in your dataset).
 - Casts every column to the **final master table types** above.
-- Normalizes `skills` to a consistent type (e.g. JSON STRING or ARRAY&lt;STRING&gt;).
-- Optionally adds `is_complete` and/or restricts to rows with minimal missing key fields.
-
-Create the view in BigQuery (replace `{project}` and `{dataset}` with your project and dataset, e.g. `job_market_analysis`):
+- Adds `is_complete` for filtering rows with minimal missing data.
 
 ```bash
-# From repo root, substitute and run in BigQuery Console or bq:
-sed 's/{project}/YOUR_PROJECT/g;s/{dataset}/YOUR_DATASET/g' scripts/sql/master_jobs_clean_view.sql
+python3 scripts/create_master_table.py --clean
 ```
+
+The script builds the SQL from the raw tables that exist; no need to run a SQL file manually. Reference SQL is in `scripts/sql/master_jobs_clean_view.sql`.
 
 Then you can point reporting or dbt at this view as the **final master** with consistent columns and fewer missing values if you use the filter.
 

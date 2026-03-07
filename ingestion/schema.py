@@ -1,4 +1,6 @@
-"""Canonical raw job schema for Silver/Gold consistency across sources."""
+"""
+One canonical job row shape for all sources. RawJobRow + JOBS_COLUMNS used by every pipeline.
+"""
 from datetime import date, datetime
 from typing import Any, List, Optional
 

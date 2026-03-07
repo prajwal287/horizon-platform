@@ -1,24 +1,23 @@
 #!/usr/bin/env python3
 """
-Horizon ingestion CLI: run one or all dlt pipelines (Hugging Face + Kaggle → GCS Parquet). Step 1 of dlt → GCS → BigQuery.
+Step 1: Run dlt pipelines (Hugging Face + Kaggle) → write Parquet to GCS.
+
+Flow: CLI → pick runner by --source → run_pipeline() → stream_*() yields batches → dlt writes Parquet.
+Step 2: run scripts/load_gcs_to_bigquery.py to load GCS → BigQuery.
 
 Usage:
   python run_ingestion.py --source all
-  python run_ingestion.py --source huggingface
-  python run_ingestion.py --source kaggle_data_engineer
-  python run_ingestion.py --source kaggle_linkedin
-  python run_ingestion.py --source kaggle_linkedin_skills
+  python run_ingestion.py --source kaggle_data_engineer   # or huggingface, kaggle_linkedin, kaggle_linkedin_skills
 
-Requires GCS_BUCKET and GOOGLE_CLOUD_PROJECT (or GCP_PROJECT). Step 2: run scripts/load_gcs_to_bigquery.py to load GCS Parquet → BigQuery.
-For Kaggle sources, KAGGLE_USERNAME and KAGGLE_API_TOKEN (or KAGGLE_KEY) are required.
+Requires: GCS_BUCKET, GOOGLE_CLOUD_PROJECT (or GCP_PROJECT). Kaggle: KAGGLE_USERNAME, KAGGLE_KEY.
 """
 import argparse
 import logging
 import os
 import sys
 
-# Load .env from project root so GCS_BUCKET, GOOGLE_CLOUD_PROJECT, KAGGLE_* are set without exporting
 def _load_env():
+    """Load .env from project root so GCS_BUCKET, GOOGLE_CLOUD_PROJECT, KAGGLE_* are set."""
     root = os.path.dirname(os.path.abspath(__file__))
     for candidate in [os.path.join(root, ".env"), os.path.join(os.getcwd(), ".env")]:
         if not os.path.isfile(candidate):

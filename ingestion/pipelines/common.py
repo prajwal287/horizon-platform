@@ -1,4 +1,6 @@
-"""Shared dlt pipeline logic: single runner and jobs table spec."""
+"""
+Shared dlt pipeline: one runner for all sources. Stream function yields batches of job dicts → dlt writes Parquet to GCS.
+"""
 import logging
 import os
 from typing import Callable, Iterator
@@ -18,10 +20,7 @@ def run_pipeline(
     dataset_name: str,
     stream_fn: Callable[[], Iterator[list[dict]]],
 ) -> dlt.Pipeline:
-    """
-    Run a dlt pipeline: stream job rows to GCS Parquet (replace mode).
-    Uses JOBS_COLUMNS from schema for consistent jobs table definition.
-    """
+    """Run one dlt pipeline: stream_fn() yields batches → dlt writes Parquet to gs://bucket/raw/<dataset_name>/ (replace)."""
     bucket_base = get_gcs_base_url()
     bucket_url = f"{bucket_base.rstrip('/')}/{dataset_name}"
     os.environ["DESTINATION__FILESYSTEM__BUCKET_URL"] = bucket_url

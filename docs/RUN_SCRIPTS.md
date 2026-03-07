@@ -1,10 +1,10 @@
-# How to Execute the Plan Scripts
+# How to Execute the Scripts
 
 Run all commands from the **project root**: `horizon-platform/`
 
-**New here?** Read **[END_TO_END_EXECUTION_AND_LEARNING.md](END_TO_END_EXECUTION_AND_LEARNING.md)** first: it explains where execution starts, how data flows (dlt → GCS → BigQuery), and how each script fits in. Use it to build mental models and debug failures.
-
-**Running from scratch?** Use **[RUN_FROM_SCRATCH.md](RUN_FROM_SCRATCH.md)** for a step-by-step walkthrough of Terraform & GCP (variables, outputs, how connections work), then DLT (how we use it, how it connects to GCS). No jargon overload—one concept at a time.
+- **How the code works:** [HOW_IT_WORKS.md](HOW_IT_WORKS.md) — data flow, which file does what.
+- **First time (empty GCP):** [RUN_FROM_SCRATCH.md](RUN_FROM_SCRATCH.md) — Terraform, GCP, then run pipeline.
+- **Resume (data already in GCS/BigQuery):** [RUN_FROM_INTERMEDIATE.md](RUN_FROM_INTERMEDIATE.md) — run from where you left off.
 
 **Minimal path to data in BigQuery:**
 1. Set `GCS_BUCKET`, `GOOGLE_CLOUD_PROJECT`; for Kaggle add `KAGGLE_USERNAME` + `KAGGLE_KEY`.
