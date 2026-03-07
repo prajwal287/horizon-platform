@@ -11,11 +11,21 @@ Run all commands from the **project root**: `horizon-platform/`
 2. `python run_ingestion.py --source kaggle_data_engineer`
 3. `python scripts/load_gcs_to_bigquery.py --source kaggle_data_engineer`
 
+**Available sources (for `--source`):**
+
+| Source | Description | Credentials |
+|--------|-------------|-------------|
+| `huggingface` | Hugging Face lukebarousse/data_jobs (data-domain filter) | None |
+| `kaggle_data_engineer` | Kaggle Data Engineer 2023 | `KAGGLE_USERNAME`, `KAGGLE_KEY` |
+| `kaggle_linkedin` | Kaggle LinkedIn postings | `KAGGLE_USERNAME`, `KAGGLE_KEY` |
+| `kaggle_linkedin_skills` | Kaggle LinkedIn jobs + skills 2024 | `KAGGLE_USERNAME`, `KAGGLE_KEY` |
+| `jobven` | Jobven API: US jobs, last 24h, "data engineer" (free tier: 10/page, 300 calls/month) | `JOBVEN_API_KEY` (optional; skips if unset) |
+
 ---
 
 ## Load data from scratch (empty GCS and BigQuery)
 
-Use this when you have **no data** in your GCS bucket or BigQuery yet and want to load **all sources** (Hugging Face + all Kaggle streams).
+Use this when you have **no data** in your GCS bucket or BigQuery yet and want to load **all sources** (Hugging Face, Kaggle, and optionally Jobven).
 
 **Step 1 – Set environment variables**
 
@@ -74,6 +84,32 @@ python3 scripts/create_master_table.py --clean --materialize
 **Summary:** `run_ingestion.py --source all` → `load_gcs_to_bigquery.py --source all` → (optional) `create_master_table.py`. To run only one source, use `--source huggingface`, `--source kaggle_data_engineer`, `--source jobven`, etc., for both commands.
 
 **Jobven (free tier only):** Set `JOBVEN_API_KEY` to enable. Fetches US jobs from the last 24h (query: "data engineer"). Free tier: 10 jobs per page, 300 API calls/month; the pipeline caps at 3 pages per run (~30 jobs) so a daily run stays within limit.
+
+---
+
+## Quick test (single source)
+
+To test one source end-to-end (e.g. before or after running `--source all`):
+
+```bash
+# From project root, with .env or exports set
+export GCS_BUCKET=your-bucket
+export GOOGLE_CLOUD_PROJECT=your-project
+
+# Example: Jobven only (requires JOBVEN_API_KEY)
+python3 run_ingestion.py --source jobven
+python3 scripts/load_gcs_to_bigquery.py --source jobven
+
+# Example: Kaggle Data Engineer only (requires KAGGLE_USERNAME, KAGGLE_KEY)
+python3 run_ingestion.py --source kaggle_data_engineer
+python3 scripts/load_gcs_to_bigquery.py --source kaggle_data_engineer
+```
+
+Then optionally rebuild the master table so the new/updated raw table is included:
+
+```bash
+python3 scripts/create_master_table.py --clean
+```
 
 ---
 
@@ -141,7 +177,13 @@ Right now, transformations are done in SQL under `scripts/sql/` and by `create_m
    Use the **Google AI** (Generative Language) key from AI Studio, not a GCP project API key. If you see `API_KEY_INVALID`, create a new key at the link above and use it.  
    To run **without** calling Gemini (taxonomy only), use `--skip-llm` and no key is needed.
 
-4. **For BigQuery (compare --from-bigquery or create_master_table):** Set GCP project and ensure Application Default Credentials:
+4. **For Jobven (optional):** Set API key to include Jobven in `--source all` or run `--source jobven`:
+   ```bash
+   export JOBVEN_API_KEY=your_jobven_api_key
+   ```
+   Get a key at [jobven.com](https://jobven.com). Free tier: 300 calls/month, 10 jobs per page; pipeline caps at 3 pages per run.
+
+5. **For BigQuery (compare --from-bigquery or create_master_table):** Set GCP project and ensure Application Default Credentials:
    ```bash
    export GOOGLE_CLOUD_PROJECT=your-project-id
    export BIGQUERY_DATASET=job_market_analysis

@@ -31,7 +31,7 @@ All raw tables and the master use the **same logical schema**. Below is the cano
 
 | Column         | BigQuery type   | Nullable | Description |
 |----------------|-----------------|----------|-------------|
-| source_id      | STRING          | No       | Source identifier (e.g. `kaggle_data_engineer_2023`, `huggingface_data_jobs`). |
+| source_id      | STRING          | No       | Source identifier (e.g. `kaggle_data_engineer_2023`, `huggingface_data_jobs`, `jobven_jobs`). |
 | source_name    | STRING          | No       | Human-readable source name. |
 | job_title      | STRING          | Yes      | Job title. |
 | job_description| STRING          | Yes      | Job description text. |

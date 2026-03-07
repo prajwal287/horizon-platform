@@ -77,8 +77,8 @@ When you decide to move transformations into dbt:
 2. **Point dbt at your dataset**  
    In `profiles.yml`, set the BigQuery project and dataset (e.g. `job_market_analysis`) where raw and master tables live.
 
-3. **Add sources**  
-   Define `raw_huggingface_data_jobs`, `raw_kaggle_data_engineer_2023`, etc. as dbt **sources**.
+3. **Add sources**
+   Define `raw_huggingface_data_jobs`, `raw_kaggle_data_engineer_2023`, `raw_jobven_jobs`, etc. as dbt **sources**.
 
 4. **Move union + clean into dbt models**  
    - e.g. `stg_master_jobs.sql`: union of raw tables with consistent types (and `is_complete` if you like).  

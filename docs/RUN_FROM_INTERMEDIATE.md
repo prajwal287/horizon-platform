@@ -23,7 +23,7 @@ gsutil ls gs://BUCKET/raw/
 bq ls --project_id=PROJECT DATASET
 ```
 
-You should see folders like `raw/huggingface_data_jobs/`, `raw/kaggle_data_engineer_2023/` in GCS and tables like `raw_kaggle_data_engineer_2023` in BigQuery.
+You should see folders like `raw/huggingface_data_jobs/`, `raw/kaggle_data_engineer_2023/`, `raw/jobven_jobs/` in GCS and tables like `raw_kaggle_data_engineer_2023`, `raw_jobven_jobs` in BigQuery (if you use those sources).
 
 ---
 
@@ -52,6 +52,8 @@ export BIGQUERY_DATASET=job_market_analysis
 # Kaggle (if using Kaggle sources):
 export KAGGLE_USERNAME=your_username
 export KAGGLE_KEY=your_key
+# Jobven (optional; free tier):
+# export JOBVEN_API_KEY=your_jobven_key
 
 python3 run_ingestion.py --source all
 python3 scripts/load_gcs_to_bigquery.py --source all
@@ -89,7 +91,7 @@ python3 scripts/create_master_table.py --clean
 
 | Step | Required env |
 |------|----------------|
-| Step 1 (ingestion) | `GCS_BUCKET`, `GOOGLE_CLOUD_PROJECT` (or `GCP_PROJECT`). For Kaggle: `KAGGLE_USERNAME`, `KAGGLE_KEY`. |
+| Step 1 (ingestion) | `GCS_BUCKET`, `GOOGLE_CLOUD_PROJECT` (or `GCP_PROJECT`). For Kaggle: `KAGGLE_USERNAME`, `KAGGLE_KEY`. For Jobven (optional): `JOBVEN_API_KEY`. |
 | Step 2 (load to BQ) | `GCS_BUCKET`, `GOOGLE_CLOUD_PROJECT`, `BIGQUERY_DATASET` (default `job_market_analysis`). |
 | Master table | `GOOGLE_CLOUD_PROJECT`, `BIGQUERY_DATASET`. |
 
