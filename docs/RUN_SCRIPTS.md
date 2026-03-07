@@ -13,13 +13,59 @@ Run all commands from the **project root**: `horizon-platform/`
 
 ---
 
+## Load data from scratch (empty GCS and BigQuery)
+
+Use this when you have **no data** in your GCS bucket or BigQuery yet and want to load **all sources** (Hugging Face + all Kaggle streams).
+
+**Step 1 – Set environment variables**
+
+```bash
+# Required for ingestion and load (from Terraform outputs or .env)
+export GCS_BUCKET=your-bucket-name
+export GOOGLE_CLOUD_PROJECT=your-project-id
+export BIGQUERY_DATASET=job_market_analysis
+
+# Required for Kaggle sources (all 3 Kaggle pipelines need this)
+export KAGGLE_USERNAME=your_kaggle_username
+export KAGGLE_KEY=your_kaggle_api_key
+```
+
+Ensure GCP auth: `gcloud auth application-default login`.
+
+**Step 2 – Ingest all sources to GCS (Parquet)**
+
+This runs all four pipelines: Hugging Face + Kaggle Data Engineer + Kaggle LinkedIn + Kaggle LinkedIn Skills.
+
+```bash
+python3 run_ingestion.py --source all
+```
+
+**Step 3 – Load all Parquet from GCS into BigQuery**
+
+Creates or replaces raw tables: `raw_huggingface_data_jobs`, `raw_kaggle_data_engineer_2023`, `raw_kaggle_linkedin_postings`, `raw_kaggle_linkedin_jobs_skills_2024`.
+
+```bash
+python3 scripts/load_gcs_to_bigquery.py --source all
+```
+
+**Step 4 (optional) – Master view**
+
+```bash
+python3 scripts/create_master_table.py
+```
+
+**Summary:** `run_ingestion.py --source all` → `load_gcs_to_bigquery.py --source all` → (optional) `create_master_table.py`. To run only one source, use `--source huggingface`, `--source kaggle_data_engineer`, etc., for both commands.
+
+---
+
 ## Prerequisites
 
 1. **Python 3.9+** and install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-   This installs `kaggle`, `google-generativeai`, `pandas`, etc.
+   This installs `kaggle`, `google-generativeai`, `pandas`, etc.  
+   **Note:** The codebase uses `Optional[...]` type hints (not `X | None`) for Python 3.9 compatibility. If you see `TypeError: unsupported operand type(s) for |: 'type' and 'NoneType'`, ensure you are running Python 3.9+ and have the latest code (ingestion uses `typing.Optional`).
 
 2. **For compare script (CSV mode):**  
    - If the dataset is **already** under `data/kaggle/lukkardata-data-engineer-job-postings-2023/` (e.g. from a previous ingestion run), the script uses it and **no Kaggle auth is needed**.  

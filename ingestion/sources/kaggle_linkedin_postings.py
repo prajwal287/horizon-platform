@@ -2,7 +2,7 @@
 import logging
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Iterator, List
+from typing import Any, Iterator, List, Optional
 
 import pandas as pd
 
@@ -44,7 +44,7 @@ def _infer_column_map(df: pd.DataFrame) -> dict[str, str]:
     return col_map
 
 
-def _parse_date(val: Any) -> date | None:
+def _parse_date(val: Any) -> Optional[date]:
     if val is None or (isinstance(val, float) and pd.isna(val)):
         return None
     if isinstance(val, date) and not isinstance(val, datetime):
@@ -57,7 +57,7 @@ def _parse_date(val: Any) -> date | None:
         return None
 
 
-def _skills_to_list(val: Any) -> List[str] | None:
+def _skills_to_list(val: Any) -> Optional[List[str]]:
     if val is None or (isinstance(val, float) and pd.isna(val)):
         return None
     if isinstance(val, list):
@@ -69,7 +69,7 @@ def _skills_to_list(val: Any) -> List[str] | None:
     return None
 
 
-def _row_to_canonical(row: pd.Series, col_map: dict[str, str]) -> RawJobRow | None:
+def _row_to_canonical(row: pd.Series, col_map: dict[str, str]) -> Optional[RawJobRow]:
     posted = DEFAULT_POSTED_DATE
     for csv_col, canon in col_map.items():
         if canon == "posted_date":
@@ -125,7 +125,7 @@ def _row_to_canonical(row: pd.Series, col_map: dict[str, str]) -> RawJobRow | No
     )
 
 
-def _find_first_csv(directory: Path) -> Path | None:
+def _find_first_csv(directory: Path) -> Optional[Path]:
     for f in directory.rglob("*.csv"):
         return f
     return None
@@ -142,7 +142,7 @@ def stream_kaggle_linkedin_postings(
     csv_path = _find_first_csv(dest)
     if not csv_path:
         raise FileNotFoundError(f"No CSV found under {dest}")
-    col_map: dict[str, str] | None = None
+    col_map: Optional[dict[str, str]] = None
     count = 0
     batch: List[dict[str, Any]] = []
     for chunk in pd.read_csv(csv_path, chunksize=batch_size, low_memory=False):

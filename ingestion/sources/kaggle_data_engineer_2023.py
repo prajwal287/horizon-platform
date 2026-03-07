@@ -3,7 +3,7 @@ import logging
 import os
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Iterator, List
+from typing import Any, Iterator, List, Optional
 
 import pandas as pd
 
@@ -71,7 +71,7 @@ def _normalize_columns(df: pd.DataFrame) -> dict[str, str]:
     return out
 
 
-def _row_to_canonical(row: pd.Series, col_map: dict[str, str]) -> RawJobRow | None:
+def _row_to_canonical(row: pd.Series, col_map: dict[str, str]) -> Optional[RawJobRow]:
     posted = DEFAULT_POSTED_DATE
     if not last_3_years(posted):
         return None
@@ -118,7 +118,7 @@ def _row_to_canonical(row: pd.Series, col_map: dict[str, str]) -> RawJobRow | No
     salary_info = None
     if salary_avg or salary_currency:
         salary_info = " ".join(filter(None, [salary_avg, salary_currency]))
-    skills: List[str] | None = None
+    skills: Optional[List[str]] = None
     if EXTRACT_SKILLS_TAXONOMY:
         from ingestion.skills_extraction import extract_skills_taxonomy
         skills = extract_skills_taxonomy(title, desc) or None
@@ -141,7 +141,7 @@ def _find_csvs(directory: Path) -> List[Path]:
     return sorted(directory.rglob("*.csv"), key=lambda p: p.stat().st_size, reverse=True)
 
 
-def _find_best_csv(directory: Path) -> Path | None:
+def _find_best_csv(directory: Path) -> Optional[Path]:
     """Return the largest CSV (by file size) so we prefer the main data file over small metadata CSVs."""
     csvs = _find_csvs(directory)
     return csvs[0] if csvs else None

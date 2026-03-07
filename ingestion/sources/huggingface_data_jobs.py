@@ -1,7 +1,7 @@
 """Hugging Face lukebarousse/data_jobs: load, filter (last 3 years, data domain), yield batches."""
 import logging
 from datetime import date, datetime
-from typing import Any, Iterator, List
+from typing import Any, Iterator, List, Optional
 
 from datasets import load_dataset
 
@@ -16,7 +16,7 @@ SOURCE_NAME = "Hugging Face data_jobs"
 BATCH_SIZE = 10_000
 
 
-def _parse_date(value: Any) -> date | None:
+def _parse_date(value: Any) -> Optional[date]:
     """Parse posted date from HF dataset (may be datetime or str)."""
     if value is None:
         return None
@@ -32,7 +32,7 @@ def _parse_date(value: Any) -> date | None:
     return None
 
 
-def _skills_list(value: Any) -> List[str] | None:
+def _skills_list(value: Any) -> Optional[List[str]]:
     """Normalize job_skills to list of strings."""
     if value is None:
         return None
@@ -43,7 +43,7 @@ def _skills_list(value: Any) -> List[str] | None:
     return None
 
 
-def _row_to_canonical(row: dict[str, Any]) -> RawJobRow | None:
+def _row_to_canonical(row: dict[str, Any]) -> Optional[RawJobRow]:
     """Map HF row to canonical schema; return None if filtered out."""
     posted = _parse_date(row.get("job_posted_date"))
     if not last_3_years(posted):

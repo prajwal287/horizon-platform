@@ -2,6 +2,7 @@
 import logging
 import os
 from pathlib import Path
+from typing import Optional
 
 from kaggle.api.kaggle_api_extended import KaggleApi
 
@@ -22,7 +23,7 @@ def ensure_kaggle_credentials() -> None:
         )
 
 
-def download_dataset(dataset: str, path: str | None = None, unzip: bool = True) -> Path:
+def download_dataset(dataset: str, path: Optional[str] = None, unzip: bool = True) -> Path:
     """
     Download a Kaggle dataset (e.g. 'lukkardata/data-engineer-job-postings-2023').
     Saves to KAGGLE_BASE/<slug>/ or path if given. Returns the directory path.

@@ -14,7 +14,33 @@ For Kaggle sources, KAGGLE_USERNAME and KAGGLE_API_TOKEN (or KAGGLE_KEY) are req
 """
 import argparse
 import logging
+import os
 import sys
+
+# Load .env from project root so GCS_BUCKET, GOOGLE_CLOUD_PROJECT, KAGGLE_* are set without exporting
+def _load_env():
+    root = os.path.dirname(os.path.abspath(__file__))
+    for candidate in [os.path.join(root, ".env"), os.path.join(os.getcwd(), ".env")]:
+        if not os.path.isfile(candidate):
+            continue
+        try:
+            from dotenv import load_dotenv
+            load_dotenv(candidate, override=True)
+            return
+        except ImportError:
+            pass
+        with open(candidate) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, _, v = line.partition("=")
+                    k, v = k.strip(), v.strip().strip("'\"")
+                    if k and v:
+                        os.environ[k] = v
+        return
+
+
+_load_env()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -63,7 +89,6 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    import os
     if not os.environ.get("GCS_BUCKET"):
         logger.error("GCS_BUCKET is required for dlt → GCS. Set it or use .env (see .env.example).")
         return 1
