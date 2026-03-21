@@ -76,6 +76,7 @@ For other Kaggle sources: `kaggle_linkedin`, `kaggle_linkedin_skills`.
 ## Documentation
 
 - **[EXECUTION_CHECKLIST.md](docs/EXECUTION_CHECKLIST.md)** — Phase-by-phase runbook with exact commands and done criteria.
+- **[DLT_LEARNING.md](docs/DLT_LEARNING.md)** — Learn dlt using this repo: concepts, HF vs Kaggle, `replace` + Parquet, exercises.
 - **[RUN_SCRIPTS.md](docs/RUN_SCRIPTS.md)** — How to run: ingestion, load to BigQuery, master table, skills.
 - **[HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md)** — How the code works end-to-end (flow, which file does what).
 - **[RUN_FROM_SCRATCH.md](docs/RUN_FROM_SCRATCH.md)** — First-time setup: Terraform, GCP, then run pipeline.
