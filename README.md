@@ -75,7 +75,9 @@ For other Kaggle sources: `kaggle_linkedin`, `kaggle_linkedin_skills`.
 
 ## Documentation
 
-- **[COMPLETE_EXECUTION_GUIDE.md](docs/COMPLETE_EXECUTION_GUIDE.md)** — **Start here:** full scratch run with every command (prereqs → Terraform → `.env` → ingest → BigQuery → master).
+- **[CODEBASE_END_TO_END_SCENARIOS.md](docs/CODEBASE_END_TO_END_SCENARIOS.md)** — **Architecture & scenarios:** how the whole codebase fits together, with examples and user journeys.
+- **[E2E_EXECUTION_ALL_STEPS.md](docs/E2E_EXECUTION_ALL_STEPS.md)** — **Ordered runbook:** every step from prerequisites through dbt, quality checks, optional Phase 8, and the agent (nothing omitted).
+- **[COMPLETE_EXECUTION_GUIDE.md](docs/COMPLETE_EXECUTION_GUIDE.md)** — **Start here (alternate):** full scratch run with narrative and troubleshooting (prereqs → Terraform → `.env` → ingest → BigQuery → master).
 - **[EXECUTION_CHECKLIST.md](docs/EXECUTION_CHECKLIST.md)** — Phase-by-phase checklist and done criteria (shorter reference).
 - **[DLT_LEARNING.md](docs/DLT_LEARNING.md)** — Learn dlt using this repo: concepts, HF vs Kaggle, `replace` + Parquet, exercises.
 - **[RUN_SCRIPTS.md](docs/RUN_SCRIPTS.md)** — How to run: ingestion, load to BigQuery, master table, skills.
