@@ -60,20 +60,11 @@ pwd
 # You must see run_ingestion.py and terraform/ in this directory.
 ```
 
-If you already have the repo, only:
-
-```bash
-cd /path/to/horizon-platform
-```
-
----
-
 ## 4. Python virtual environment and dependencies
 
 Always create the venv **in the project root** (same folder as `requirements.txt`), not inside `terraform/`.
 
 ```bash
-cd /path/to/horizon-platform
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
@@ -158,6 +149,8 @@ terraform apply
 When prompted, type `yes`.
 
 ### 7.3 Capture outputs for `.env`
+
+Run these **from the `terraform/` directory** after a successful `terraform apply`. If you run `terraform output` in the wrong folder or before any apply, you get “No outputs found”—**do not** paste that warning into `GCS_BUCKET` (it will break `load_gcs_to_bigquery.py` with a cryptic GCS error).
 
 Still in `terraform/`:
 
@@ -402,13 +395,15 @@ Set `EXTRACT_SKILLS_TAXONOMY=1` in `.env` before `docker compose run` if you wan
 
 | Symptom | What to check |
 |---------|----------------|
-| `GCS_BUCKET is required` | `.env` in project root; `set -a; source .env; set +a` |
+| `GCS_BUCKET` missing, invalid, or “Terraform warning text” | Put **only** the bucket string in `.env` (one line): `cd terraform && terraform output -raw gcs_bucket_name` after `apply`. Load `.env`: `set -a; source .env; set +a`. Never paste “No outputs found” warnings into `GCS_BUCKET`. |
 | `GOOGLE_CLOUD_PROJECT` / `GCP_PROJECT` missing | Same as above |
 | Terraform permission errors | `gcloud auth login`; account has Owner/Editor or sufficient IAM on project |
 | BigQuery load: no Parquet files | Run `run_ingestion.py` first; `gsutil ls gs://$GCS_BUCKET/raw/...` |
 | Kaggle 401 / download failed | `KAGGLE_KEY` correct; or valid `~/.kaggle/kaggle.json` |
 | `pip` / `requirements.txt` not found | Current directory is **project root**, not `terraform/` |
 | Docker auth errors | Host must run `gcloud auth application-default login`; see `README.md` |
+| Hugging Face logs show **404** on `data_jobs.py` / `dataset_infos.json` | Normal: the client probes legacy paths; Parquet-based datasets 404 those URLs and continue. Only worry on tracebacks, **401/403**, or **429** (then set `HF_TOKEN` from [HF tokens](https://huggingface.co/settings/tokens)). |
+| **google-auth** / Python **3.9** FutureWarning | Upgrade to **Python 3.10+** when practical; `pip install -U google-auth`. |
 
 ---
 

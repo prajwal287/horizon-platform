@@ -14,6 +14,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from ingestion.config import gcs_bucket_config_error, normalize_gcs_bucket
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -67,12 +69,13 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    bucket = os.environ.get("GCS_BUCKET", "").strip()
+    bucket = normalize_gcs_bucket(os.environ.get("GCS_BUCKET", ""))
     project = os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("GCP_PROJECT", "").strip()
     dataset_id = os.environ.get("BIGQUERY_DATASET", "job_market_analysis").strip() or "job_market_analysis"
 
-    if not bucket:
-        logger.error("GCS_BUCKET is required. Set it in .env or export.")
+    bq_err = gcs_bucket_config_error(bucket)
+    if bq_err:
+        logger.error("%s", bq_err)
         return 1
     if not project:
         logger.error("GOOGLE_CLOUD_PROJECT (or GCP_PROJECT) is required.")

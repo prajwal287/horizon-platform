@@ -2,6 +2,8 @@
 
 This doc helps you decide **when** to introduce **dbt** (data build tool) for transformations on top of your current pipeline (dlt → GCS → BigQuery raw tables → master table).
 
+**Practical setup in this repo:** see **[DBT_INTEGRATION.md](DBT_INTEGRATION.md)** and the **`dbt/`** directory (starter project + `profiles.yml.example`).
+
 ---
 
 ## What you have today

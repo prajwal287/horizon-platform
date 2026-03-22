@@ -1,0 +1,15 @@
+# Copy to ~/.dbt/profiles.yml and adjust project_id / location.
+# Auth: method oauth uses Application Default Credentials (gcloud auth application-default login).
+
+horizon_platform:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: oauth
+      project: YOUR_GCP_PROJECT_ID
+      dataset: job_market_analysis
+      threads: 4
+      timeout_seconds: 300
+      location: US
+      # Optional: dataproc_region, etc.

@@ -20,6 +20,11 @@ __pycache__/
 # Generated / eval outputs
 comparison_skills.csv
 
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
 # OS
 .DS_Store
 Thumbs.db

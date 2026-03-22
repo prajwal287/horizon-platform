@@ -124,7 +124,7 @@ CSV file → pandas chunks → filter/map → batch of dicts → yield
 
 **File:** `ingestion/sources/huggingface_data_jobs.py`
 
-- Calls `load_dataset("lukebarousse/data_jobs", split="train", trust_remote_code=True)`.
+- Calls `load_dataset("lukebarousse/data_jobs", split="train")` (no `trust_remote_code`; removed in newer `datasets`).
 - Iterates **`for ... in ds:`** over the dataset (Hugging Face may **cache** Arrow data locally after first fetch; you are not reading a CSV path in *your* code).
 - Each row: `_row_to_canonical` applies **date** + **data-domain** filters; builds `RawJobRow`, `to_load_dict()`.
 - **Yields:** batches of dicts when `len(batch) >= batch_size` (same 10k pattern as Kaggle).

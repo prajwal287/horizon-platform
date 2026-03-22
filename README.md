@@ -84,5 +84,6 @@ For other Kaggle sources: `kaggle_linkedin`, `kaggle_linkedin_skills`.
 - **[RUN_FROM_INTERMEDIATE.md](docs/RUN_FROM_INTERMEDIATE.md)** — Resume from where you left off (no full re-run).
 - [MASTER_TABLE_SPEC.md](docs/MASTER_TABLE_SPEC.md) — Master table columns, adding skills, clean view.
 - [WHEN_TO_USE_DBT.md](docs/WHEN_TO_USE_DBT.md) — When to introduce dbt for transformations.
+- [DBT_INTEGRATION.md](docs/DBT_INTEGRATION.md) — How to run **dbt** on top of existing `raw_*` tables; starter in **`dbt/`**.
 - [EVALUATE_SKILLS_EXTRACTION.md](docs/EVALUATE_SKILLS_EXTRACTION.md) — Compare taxonomy vs LLM skills.
 - [terraform/README.md](terraform/README.md) — Infrastructure setup.

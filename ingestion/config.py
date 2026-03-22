@@ -3,7 +3,7 @@ Config from env: GCS bucket, BigQuery dataset, paths. Also: cutoff date, domain 
 """
 import os
 from datetime import datetime, timezone, timedelta
-from typing import List
+from typing import List, Optional
 
 # BigQuery: primary destination for ingestion (from Terraform: job_market_analysis)
 BIGQUERY_DATASET: str = os.environ.get("BIGQUERY_DATASET", "job_market_analysis")
@@ -179,11 +179,46 @@ DATA_ENGINEER_SKILL_ALIASES: dict[str, str] = {
 }
 
 
+def normalize_gcs_bucket(raw: str) -> str:
+    """Strip whitespace; if user set gs://bucket/..., keep only the bucket segment."""
+    b = (raw or "").strip()
+    if b.lower().startswith("gs://"):
+        b = b[5:].strip().split("/")[0].strip()
+    return b
+
+
+def gcs_bucket_config_error(bucket: str) -> Optional[str]:
+    """
+    Return a human-readable error if GCS_BUCKET looks like Terraform stderr (common when
+    `terraform output` is run with no state / wrong directory) instead of a real bucket name.
+    """
+    if not bucket:
+        return "GCS_BUCKET is empty. Set it in .env (single line, no quotes) or export it."
+    if any(ch in bucket for ch in ("\n", "\r", "\t")):
+        return (
+            "GCS_BUCKET contains line breaks — often a Terraform error block was pasted into .env. "
+            "Fix: cd terraform && terraform output -raw gcs_bucket_name"
+        )
+    if any(s in bucket for s in ("│", "╷", "╵")) or "No outputs found" in bucket or (
+        "Warning" in bucket and "output" in bucket.lower()
+    ):
+        return (
+            "GCS_BUCKET is not a bucket name (looks like Terraform warning text). "
+            "Run from the repo: cd terraform && terraform output -raw gcs_bucket_name "
+            "after a successful terraform apply, then set GCS_BUCKET to that value only."
+        )
+    if len(bucket) < 3 or len(bucket) > 222:
+        return f"GCS_BUCKET length ({len(bucket)}) is not a valid GCS bucket name."
+    return None
+
+
 def get_gcs_base_url() -> str:
     """Base URL for raw data in GCS (e.g. gs://bucket/raw)."""
-    if not GCS_BUCKET:
-        raise ValueError("GCS_BUCKET environment variable is required")
-    return f"gs://{GCS_BUCKET.strip('/')}/{GCS_PREFIX.strip('/')}"
+    bucket = normalize_gcs_bucket(GCS_BUCKET)
+    err = gcs_bucket_config_error(bucket)
+    if err:
+        raise ValueError(err)
+    return f"gs://{bucket.strip('/')}/{GCS_PREFIX.strip('/')}"
 
 
 def get_bigquery_dataset() -> str:

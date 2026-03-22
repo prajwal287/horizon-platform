@@ -112,7 +112,8 @@ def stream_huggingface_data_jobs(
     Load lukebarousse/data_jobs, filter (last 3 years, data domain), yield batches of load dicts.
     """
     logger.info("Loading Hugging Face dataset lukebarousse/data_jobs (split=%s)", split)
-    ds = load_dataset("lukebarousse/data_jobs", split=split, trust_remote_code=True)
+    # trust_remote_code removed: unsupported in datasets>=3.x; this dataset loads as Parquet.
+    ds = load_dataset("lukebarousse/data_jobs", split=split)
     count = 0
     batch: List[dict[str, Any]] = []
     for i, row in enumerate(ds):
