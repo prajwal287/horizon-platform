@@ -6,7 +6,6 @@ from typing import Any, Iterator, List, Optional
 
 from datasets import load_dataset
 
-from ingestion.config import CUTOFF_DATE
 from ingestion.filters import data_domain_only, last_3_years
 from ingestion.schema import RawJobRow
 

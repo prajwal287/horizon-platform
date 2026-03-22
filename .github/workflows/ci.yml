@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Ruff
+        run: ruff check agents tests
+
+      - name: Pytest
+        run: pytest
+
+  dbt-parse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dbt
+        run: pip install "dbt-bigquery>=1.8.0"
+
+      - name: Minimal BigQuery profile (parse only)
+        run: |
+          mkdir -p ~/.dbt
+          cat > ~/.dbt/profiles.yml << 'EOF'
+          horizon_platform:
+            target: ci
+            outputs:
+              ci:
+                type: bigquery
+                method: oauth
+                project: ci-parse-placeholder
+                dataset: job_market_analysis
+                threads: 1
+                timeout_seconds: 60
+                location: US
+          EOF
+
+      - name: dbt parse
+        env:
+          GOOGLE_CLOUD_PROJECT: ci-parse-placeholder
+          BIGQUERY_DATASET: job_market_analysis
+        working-directory: dbt
+        run: dbt parse --profiles-dir ~/.dbt

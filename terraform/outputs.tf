@@ -42,3 +42,13 @@ output "service_account_email" {
   description = "Email of the lakehouse service account"
   value       = google_service_account.lakehouse.email
 }
+
+output "pipeline_secrets_secret_id" {
+  description = "Secret Manager secret id for pipeline keys (add versions via gcloud console or gcloud secrets versions add)"
+  value       = google_secret_manager_secret.horizon_pipeline.secret_id
+}
+
+output "pipeline_scheduler_job" {
+  description = "Cloud Scheduler job name when enable_pipeline_scheduler is true"
+  value       = var.enable_pipeline_scheduler ? google_cloud_scheduler_job.horizon_pipeline_signal[0].name : null
+}

@@ -45,3 +45,27 @@ variable "lifecycle_nearline_days" {
   type        = number
   default     = 90
 }
+
+variable "enable_pipeline_scheduler" {
+  description = "If true, create a daily Cloud Scheduler job that publishes a tick to the lakehouse Pub/Sub topic (subscriber required to run the pipeline)."
+  type        = bool
+  default     = false
+}
+
+variable "pipeline_scheduler_cron" {
+  description = "Cron for pipeline signal (default 06:00 daily)."
+  type        = string
+  default     = "0 6 * * *"
+}
+
+variable "pipeline_scheduler_timezone" {
+  description = "Time zone for Cloud Scheduler"
+  type        = string
+  default     = "America/New_York"
+}
+
+variable "pipeline_scheduler_region" {
+  description = "Region for Cloud Scheduler job resource"
+  type        = string
+  default     = "us-central1"
+}

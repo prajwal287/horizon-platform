@@ -85,5 +85,6 @@ For other Kaggle sources: `kaggle_linkedin`, `kaggle_linkedin_skills`.
 - [MASTER_TABLE_SPEC.md](docs/MASTER_TABLE_SPEC.md) — Master table columns, adding skills, clean view.
 - [WHEN_TO_USE_DBT.md](docs/WHEN_TO_USE_DBT.md) — When to introduce dbt for transformations.
 - [DBT_INTEGRATION.md](docs/DBT_INTEGRATION.md) — How to run **dbt** on top of existing `raw_*` tables; starter in **`dbt/`**.
+- [PHASE8_PRODUCTION.md](docs/PHASE8_PRODUCTION.md) — CI, data quality, Secret Manager / scheduler Terraform, **agentic** BigQuery tools.
 - [EVALUATE_SKILLS_EXTRACTION.md](docs/EVALUATE_SKILLS_EXTRACTION.md) — Compare taxonomy vs LLM skills.
 - [terraform/README.md](terraform/README.md) — Infrastructure setup.

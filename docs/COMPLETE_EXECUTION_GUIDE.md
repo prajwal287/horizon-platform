@@ -410,7 +410,7 @@ Set `EXTRACT_SKILLS_TAXONOMY=1` in `.env` before `docker compose run` if you wan
 ## 18. After you are done
 
 - Query **`master_jobs`** from `create_master_table.py`, **or** run **dbt** for bronze/silver/gold and use **`dbt_gold.mart_jobs_curated`** — see [DBT_INTEGRATION.md](DBT_INTEGRATION.md).
-- For scheduling, monitoring, CI, and dbt: see [EXECUTION_CHECKLIST.md](EXECUTION_CHECKLIST.md) Phase 8 and [WHEN_TO_USE_DBT.md](WHEN_TO_USE_DBT.md).
+- For scheduling, monitoring, CI, dbt, and agentic tools: [PHASE8_PRODUCTION.md](PHASE8_PRODUCTION.md), [EXECUTION_CHECKLIST.md](EXECUTION_CHECKLIST.md) Phase 8, [WHEN_TO_USE_DBT.md](WHEN_TO_USE_DBT.md).
 - Conceptual flow: [HOW_IT_WORKS.md](HOW_IT_WORKS.md).
 
 ---

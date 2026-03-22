@@ -240,16 +240,19 @@ python3 scripts/compare_skills_extraction.py --sample 50 --output comparison_ski
 
 ---
 
-## Phase 8 — Production hardening (not yet in repo; track manually)
+## Phase 8 — Production hardening (implemented baseline)
 
-| Item | Suggested action | Done when |
-|------|------------------|-----------|
-| **Data quality** | Row counts, null rates, freshness per `source_id`; alert on drift | Checks documented + run after each load |
-| **Tests** | Add `pytest` for schema mapping, small fixture rows | `pytest` passes in CI |
-| **CI** | GitHub Actions (or other): lint + tests on PR | Green pipeline on main |
-| **Scheduling** | Cloud Scheduler / Composer / cron calling ingest → load → master | Jobs run on schedule; failures alerted |
-| **Secrets** | Move long-lived keys to Secret Manager; workload identity for jobs | No secrets in git; rotation plan |
-| **dbt** | When Silver/Gold grows — see [WHEN_TO_USE_DBT.md](WHEN_TO_USE_DBT.md) | dbt project + `dbt test` in CI |
+See **[PHASE8_PRODUCTION.md](PHASE8_PRODUCTION.md)** for runbooks (quality script, agent, Terraform).
+
+| Item | In repo | Done when |
+|------|---------|-----------|
+| **Data quality** | `scripts/data_quality_checks.py` | Run after load; use `--strict` in automation |
+| **Tests** | `tests/` + `pytest` | `pytest` passes locally / CI |
+| **CI** | `.github/workflows/ci.yml` (`ruff`, `pytest`, `dbt parse`) | Green on PR |
+| **Scheduling signal** | `terraform/phase8.tf` — optional Scheduler → Pub/Sub | Set `enable_pipeline_scheduler`; add subscriber to run pipeline |
+| **Secrets** | Secret Manager secret + IAM for lakehouse SA | Add secret versions via `gcloud`; no keys in git |
+| **dbt** | `dbt/` medallion + `dbt test` in CI parse job | `dbt run` after load |
+| **Agentic** | `agents/` + `scripts/run_agentic_insights.py` | Gemini + whitelisted BQ tools only |
 
 ---
 
@@ -259,7 +262,7 @@ python3 scripts/compare_skills_extraction.py --sample 50 --output comparison_ski
 |------|--------|
 | **Data in BigQuery for analytics** | 0 → 5 |
 | **Skills on Kaggle DE + HF (taxonomy) on first full run** | Set `EXTRACT_SKILLS_TAXONOMY=1` during Phase 3 ingest (see **Full run from scratch** above), or run Phase 6 after |
-| **Production-ready platform** | 0 → 5 + Phase 8 |
+| **Production-ready platform** | 0 → 5 + Phase 8 — see [PHASE8_PRODUCTION.md](PHASE8_PRODUCTION.md) |
 
 ---
 
