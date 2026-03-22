@@ -1,125 +1,123 @@
-# Incorporating dbt into this codebase
+# dbt integration — Bronze / Silver / Gold
 
-This doc explains **where dbt fits** next to **dlt → GCS → BigQuery** and how to use the **`dbt/`** starter in this repo.
+dbt runs **after** Python loads `raw_*` tables into BigQuery. It does **not** replace `run_ingestion.py` or `load_gcs_to_bigquery.py`.
 
-**Related:** [WHEN_TO_USE_DBT.md](WHEN_TO_USE_DBT.md) (when transformation logic deserves dbt vs keeping Python/SQL scripts).
+**Related:** [WHEN_TO_USE_DBT.md](WHEN_TO_USE_DBT.md) · starter project in **`dbt/`**
 
 ---
 
-## Architecture (unchanged ingestion)
+## Layering (medallion)
 
+| Layer | BigQuery dataset | Models | Role |
+|-------|------------------|--------|------|
+| **Bronze** | `dbt_bronze` | `brz_*` | One view per `raw_*` table — lineage from landed data, no business rules. |
+| **Silver** | `dbt_silver` | `stg_*`, `int_*` | Union all sources → trim / normalize skills → **dedupe** (per `source_id` + fingerprint) → **skills long** (one row per skill). |
+| **Gold** | `dbt_gold` | `mart_*` | Curated job mart, monthly volumes, skill demand, cross-source URL overlap. |
+
+```mermaid
+flowchart LR
+  subgraph ingest [Python]
+    A[raw_* tables]
+  end
+  subgraph bronze [dbt_bronze]
+    B[brz_* views]
+  end
+  subgraph silver [dbt_silver]
+    S1[stg_jobs_all_sources]
+    S2[int_jobs_standardized]
+    S3[int_jobs_deduplicated]
+    S4[int_skills_long]
+  end
+  subgraph gold [dbt_gold]
+    G1[mart_jobs_curated]
+    G2[mart_posting_volume]
+    G3[mart_skill_demand]
+    G4[mart_cross_source_urls]
+  end
+  A --> B --> S1 --> S2 --> S3 --> G1
+  S3 --> S4 --> G3
+  S3 --> G2
+  S3 --> G4
 ```
-run_ingestion.py (dlt)  →  GCS Parquet
-load_gcs_to_bigquery.py →  BigQuery raw_*   ← dbt sources (read-only)
-dbt run / dbt build     →  BigQuery dbt_marts.*  (or your chosen dataset)
-```
 
-- **Do not** replace dlt ingestion with dbt; dbt does not pull from APIs/CSV the way this repo does.
-- **Do** use dbt for **transformations inside BigQuery**: staging, unions, cleans, aggregates, tests, docs.
+---
 
-You can **keep** `scripts/create_master_table.py` while evaluating dbt, or **stop running it** once `dbt_marts.master_jobs_clean` (or equivalent) is your source of truth.
+## Transformation logic (what the SQL does)
+
+1. **`stg_jobs_all_sources`** — `UNION ALL` of all bronze views (single stream).
+2. **`int_jobs_standardized`** — Trims text fields; builds `skills_normalized` as `ARRAY<STRING>` (see macro); `job_url_normalized` for matching.
+3. **`int_jobs_deduplicated`** — `FARM_FINGERPRINT` over `source_id`, URL, title, company, `posted_date`, location; **`row_number()`** with **latest `ingested_at`** per fingerprint (per source).
+4. **`int_skills_long`** — `UNNEST(skills_normalized)` for aggregations.
+5. **`mart_jobs_curated`** — Gold job grain: `is_complete`, `content_quality_bucket`, `skill_count`.
+6. **`mart_posting_volume`** — Monthly counts and “complete” counts by `source_id`.
+7. **`mart_skill_demand`** — Skill frequency and how many sources mention it.
+8. **`mart_cross_source_urls`** — Normalized URLs that appear in **more than one** `source_id`.
+
+**Macros** (`dbt/macros/medallion.sql`): `normalize_skills_array`, `job_dedup_fingerprint` — edit there to tighten skills parsing or dedupe keys.
 
 ---
 
 ## Prerequisites
 
-1. **Python 3.10+** recommended (dbt aligns with current `google-*` stacks; your app may still use 3.9 for ingestion).
-2. **BigQuery access** with the same identity you use for loads: `gcloud auth application-default login`.
-3. **Raw tables loaded** at least once (`load_gcs_to_bigquery.py`), in dataset `job_market_analysis` (or whatever you set in Terraform / `.env`).
-
-Install dbt with the BigQuery adapter (in a venv or globally):
-
-```bash
-pip install dbt-bigquery
-```
+- `pip install dbt-bigquery`
+- `~/.dbt/profiles.yml` from `dbt/profiles.yml.example`
+- `gcloud auth application-default login`
+- **Every** table in `models/sources.yml` must exist, or `dbt run` fails. Remove unused sources (e.g. `raw_jobven_jobs`) if you never load Jobven.
 
 ---
 
-## One-time setup
-
-### 1. Configure `profiles.yml`
-
-dbt reads **`~/.dbt/profiles.yml`** (not committed). Copy the example:
-
-```bash
-cp dbt/profiles.yml.example ~/.dbt/profiles.yml
-```
-
-Edit **`project`**, **`dataset`** (raw dataset name), and **`location`** to match your GCP project. For **`method: oauth`**, dbt uses **Application Default Credentials** (same as `gcloud auth application-default login`).
-
-### 2. Environment variables for sources
-
-The starter **`sources.yml`** uses:
-
-- **`GOOGLE_CLOUD_PROJECT`** — GCP project ID (same as ingestion).
-- **`BIGQUERY_DATASET`** — dataset where `raw_*` tables live (default `job_market_analysis`).
+## Commands
 
 ```bash
 export GOOGLE_CLOUD_PROJECT=your-project-id
 export BIGQUERY_DATASET=job_market_analysis
 cd dbt
 dbt debug
-```
-
-`dbt debug` should report “All checks passed”.
-
-### 3. Run models
-
-From the **`dbt/`** directory:
-
-```bash
 dbt run
+dbt test   # uses tests in models/gold/_gold_models.yml
 ```
 
-Models materialize into the **`dbt_marts`** BigQuery dataset (see `dbt/dbt_project.yml`) so they do not overwrite `raw_*` tables.
-
----
-
-## After each data refresh
-
-Typical order:
+**After each data refresh:**
 
 ```bash
-# 1–2: existing pipeline (from repo root)
 python3 run_ingestion.py --source all
 python3 scripts/load_gcs_to_bigquery.py --source all
-
-# 3: transformations
 cd dbt && dbt run && dbt test
 ```
 
-Add **`dbt test`** once you define tests in YAML. Optionally **`dbt docs generate && dbt docs serve`** for lineage and column docs.
+---
+
+## Coexistence with `create_master_table.py`
+
+- Python script builds `master_jobs` in **`job_market_analysis`** (or your raw dataset).
+- dbt builds **`project.dbt_gold.mart_jobs_curated`** (and other marts) — **prefer one** for BI to avoid confusion.
+- You can stop running `create_master_table.py` once dbt is canonical.
 
 ---
 
-## What the starter project contains
+## Extending further
 
-| Path | Purpose |
-|------|---------|
-| `dbt/dbt_project.yml` | Project name, model defaults, `dbt_marts` schema for marts |
-| `dbt/models/sources.yml` | Declares **`lakehouse_raw`** sources = your `raw_*` tables |
-| `dbt/models/marts/master_jobs_clean.sql` | Union + `is_complete` (parity with `scripts/sql/master_jobs_clean_view.sql`) |
-
-**Caveat:** `dbt run` expects every **sourced** table to exist. If you never load Jobven, either remove `raw_jobven_jobs` from `sources.yml` or add a placeholder empty table—otherwise BigQuery will error on missing tables.
-
----
-
-## Next steps (grow the project)
-
-1. **Staging per source:** `stg_huggingface.sql` etc. with `select * from {{ source(...) }}` plus light renames/casts.
-2. **Gold / marts:** e.g. `mart_jobs_by_source_month.sql`, skills unnest models.
-3. **Tests:** `unique`, `not_null`, relationships in `schema.yml`.
-4. **CI:** run `dbt build` on pull requests with a service account JSON secret (not ADC).
-5. **Incremental models:** for append-only snapshots if you change ingestion to append instead of truncate (separate design).
+| Idea | Where |
+|------|--------|
+| Incremental fact table | New `gold` model, `materialized='incremental'`, `unique_key=...` |
+| JSON / string skills | Extend `normalize_skills_array` in `macros/medallion.sql` |
+| Cross-source golden job ID | New `silver` model joining on `job_url_normalized` |
+| dbt packages (`dbt_utils`, etc.) | Add `packages.yml`, run `dbt deps` |
+| Docs / lineage | `dbt docs generate` · `dbt docs serve` |
+| CI | `dbt build` with service-account profile (not ADC) |
 
 ---
 
-## Summary
+## Project layout (reference)
 
-| Layer | Tool | Location |
-|-------|------|----------|
-| Ingest | dlt + Python | `run_ingestion.py`, `ingestion/` |
-| Raw in BQ | Python + BQ load | `scripts/load_gcs_to_bigquery.py` |
-| Transform | **dbt** | **`dbt/`** (starter) + your new models |
-
-**Bottom line:** keep ingestion/load as-is; add dbt for BigQuery-only transforms, run **`dbt run`** after each load, and point BI tools at **`project.dbt_marts.master_jobs_clean`** (or models you add).
+```
+dbt/
+  dbt_project.yml
+  profiles.yml.example
+  macros/medallion.sql
+  models/
+    sources.yml
+    bronze/brz_*.sql
+    silver/stg_*.sql, int_*.sql
+    gold/mart_*.sql, _gold_models.yml
+```

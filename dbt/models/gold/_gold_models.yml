@@ -1,0 +1,19 @@
+version: 2
+
+models:
+  - name: mart_jobs_curated
+    description: Deduped jobs with is_complete and quality bucket; primary mart for BI.
+    columns:
+      - name: source_id
+        tests: [not_null]
+      - name: is_complete
+        description: True when title present and (description or at least one skill).
+
+  - name: mart_posting_volume
+    description: Monthly volume and complete-posting counts by source.
+
+  - name: mart_skill_demand
+    description: Skill string frequency across jobs (silver int_skills_long).
+
+  - name: mart_cross_source_urls
+    description: URLs seen in multiple sources (overlap analysis).

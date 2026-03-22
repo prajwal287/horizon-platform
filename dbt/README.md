@@ -1,26 +1,32 @@
-# dbt (BigQuery) — transformations only
+# dbt — Bronze / Silver / Gold on BigQuery
 
-Ingestion stays in the parent repo (`run_ingestion.py`, `load_gcs_to_bigquery.py`). This folder defines **SQL models** on top of existing **`raw_*`** tables.
+Ingestion stays in the parent repo. This project transforms **`raw_*`** into **`dbt_bronze`** → **`dbt_silver`** → **`dbt_gold`**.
 
 ## Quick start
 
 ```bash
 pip install dbt-bigquery
-cp profiles.yml.example ~/.dbt/profiles.yml
-# Edit ~/.dbt/profiles.yml: project, dataset, location
+cp profiles.yml.example ~/.dbt/profiles.yml   # set project, location
 
 export GOOGLE_CLOUD_PROJECT=your-project-id
 export BIGQUERY_DATASET=job_market_analysis
 cd dbt
 dbt debug
 dbt run
+dbt test
 ```
 
-See **[docs/DBT_INTEGRATION.md](../docs/DBT_INTEGRATION.md)** for architecture, run order after loads, and how to extend models.
+## Main gold outputs
 
-## Layout
+| Model | Use |
+|-------|-----|
+| `mart_jobs_curated` | Primary job-level table (`is_complete`, quality bucket, deduped) |
+| `mart_posting_volume` | Monthly volume by source |
+| `mart_skill_demand` | Skill counts |
+| `mart_cross_source_urls` | Same URL across multiple sources |
 
-- `models/sources.yml` — BigQuery sources = `raw_*` tables
-- `models/marts/master_jobs_clean.sql` — union + `is_complete` → view in **`dbt_marts`**
+## Docs
 
-Remove or comment sources in `sources.yml` for tables you do not load (e.g. Jobven).
+See **[docs/DBT_INTEGRATION.md](../docs/DBT_INTEGRATION.md)** for the full diagram, logic, and how to extend macros/models.
+
+**Note:** Remove unused tables from `models/sources.yml` if you do not load all five raw sources.

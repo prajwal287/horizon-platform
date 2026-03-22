@@ -71,26 +71,22 @@ If you start adding several Silver models (e.g. `stg_jobs`, `stg_skills_flattene
 
 ## How to adopt dbt later (high level)
 
-When you decide to move transformations into dbt:
+The repo now includes a **medallion** layout in **`dbt/`** (bronze / silver / gold). See **[DBT_INTEGRATION.md](DBT_INTEGRATION.md)** for the model list and DAG.
 
 1. **Keep ingestion and load as-is**  
    dlt → GCS and `load_gcs_to_bigquery.py` stay the same; dbt only reads from BigQuery.
 
-2. **Point dbt at your dataset**  
-   In `profiles.yml`, set the BigQuery project and dataset (e.g. `job_market_analysis`) where raw and master tables live.
+2. **Point dbt at your project**  
+   In `~/.dbt/profiles.yml` (from `dbt/profiles.yml.example`), set BigQuery **project** and **location**; raw tables are referenced via `GOOGLE_CLOUD_PROJECT` + `BIGQUERY_DATASET` in `sources.yml`.
 
-3. **Add sources**
-   Define `raw_huggingface_data_jobs`, `raw_kaggle_data_engineer_2023`, `raw_jobven_jobs`, etc. as dbt **sources**.
+3. **Sources**  
+   `models/sources.yml` defines `lakehouse_raw` → each `raw_*` table.
 
-4. **Move union + clean into dbt models**  
-   - e.g. `stg_master_jobs.sql`: union of raw tables with consistent types (and `is_complete` if you like).  
-   - Optionally a **mart** like `mart_master_jobs_clean` that filters `WHERE is_complete = TRUE`.
+4. **Bronze → Silver → Gold**  
+   Bronze views mirror raw; silver unions, standardizes, dedupes, explodes skills; gold exposes `mart_jobs_curated`, volumes, skill demand, cross-source URL overlap.
 
-5. **Add more models as needed**  
-   Staging per source, gold aggregates, etc. Use **ref()** between models so lineage and order are automatic.
-
-6. **Run after load**  
-   After `load_gcs_to_bigquery.py`, run `dbt run` (and `dbt test`) so transformations stay up to date.
+5. **Run after load**  
+   After `load_gcs_to_bigquery.py`, run `dbt run` and `dbt test`.
 
 ---
 

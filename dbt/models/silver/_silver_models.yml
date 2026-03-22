@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: stg_jobs_all_sources
+    description: Union of all bronze views (single job stream).
+
+  - name: int_jobs_standardized
+    description: Trimmed fields, ARRAY skills, normalized URL key.
+
+  - name: int_jobs_deduplicated
+    description: Latest row per (source_id, fingerprint); fingerprint from URL + title + company + date + location.
+
+  - name: int_skills_long
+    description: Exploded skills for aggregations (one row per job-skill).

@@ -16,11 +16,21 @@ clean-targets:
   - target
   - dbt_packages
 
+# Medallion layout (BigQuery datasets): bronze → silver → gold
 models:
   horizon_platform:
-    marts:
+    bronze:
       +materialized: view
-      +schema: dbt_marts
+      +schema: dbt_bronze
+      +tags: ["bronze"]
+    silver:
+      +materialized: view
+      +schema: dbt_silver
+      +tags: ["silver"]
+    gold:
+      +materialized: view
+      +schema: dbt_gold
+      +tags: ["gold"]
 
 vars:
   bigquery_dataset: job_market_analysis
