@@ -1,5 +1,6 @@
 """Hugging Face lukebarousse/data_jobs: load, filter (last 3 years, data domain), yield batches."""
 import logging
+import os
 from datetime import date, datetime
 from typing import Any, Iterator, List, Optional
 
@@ -10,6 +11,9 @@ from ingestion.filters import data_domain_only, last_3_years
 from ingestion.schema import RawJobRow
 
 logger = logging.getLogger(__name__)
+
+# Same as Kaggle DE: fill skills from title + text when job_skills is null (uses job_type_skills as text).
+EXTRACT_SKILLS_TAXONOMY = os.environ.get("EXTRACT_SKILLS_TAXONOMY", "").strip().lower() in ("1", "true", "yes")
 
 SOURCE_ID = "huggingface_data_jobs"
 SOURCE_NAME = "Hugging Face data_jobs"
@@ -37,10 +41,26 @@ def _skills_list(value: Any) -> Optional[List[str]]:
     if value is None:
         return None
     if isinstance(value, list):
-        return [str(s) for s in value]
+        out = [str(s).strip() for s in value if s is not None and str(s).strip()]
+        return out or None
     if isinstance(value, str):
-        return [value]
+        s = value.strip()
+        return [s] if s else None
     return None
+
+
+def _job_type_skills_text(value: Any) -> Optional[str]:
+    """HF job_type_skills: long text blob; use as synthetic job_description + taxonomy input."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        s = value.strip()
+        return s or None
+    if isinstance(value, list):
+        parts = [str(x).strip() for x in value if x is not None and str(x).strip()]
+        return "\n".join(parts) if parts else None
+    s = str(value).strip()
+    return s or None
 
 
 def _row_to_canonical(row: dict[str, Any]) -> Optional[RawJobRow]:
@@ -49,7 +69,8 @@ def _row_to_canonical(row: dict[str, Any]) -> Optional[RawJobRow]:
     if not last_3_years(posted):
         return None
     title = row.get("job_title")
-    desc = None  # HF data_jobs may not have raw description in same row
+    # No full job ad body in this dataset; job_type_skills is the main free-text skills field.
+    desc = _job_type_skills_text(row.get("job_type_skills"))
     skills = _skills_list(row.get("job_skills"))
     job_title_short = row.get("job_title_short")
     if not data_domain_only(
@@ -59,6 +80,15 @@ def _row_to_canonical(row: dict[str, Any]) -> Optional[RawJobRow]:
         job_title_short=job_title_short,
     ):
         return None
+    if EXTRACT_SKILLS_TAXONOMY:
+        from ingestion.skills_extraction import extract_skills_taxonomy
+
+        title_s = title.strip() if isinstance(title, str) and title.strip() else None
+        tax = extract_skills_taxonomy(title_s, desc)
+        if not skills:
+            skills = tax or None
+        elif tax:
+            skills = list(dict.fromkeys(list(skills) + tax))
     return RawJobRow(
         source_id=SOURCE_ID,
         source_name=SOURCE_NAME,

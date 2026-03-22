@@ -53,7 +53,7 @@ So: **Sources → normalize → GCS (Parquet) → BigQuery (raw_*) → optional 
 4. **ingestion/sources/*.py** (e.g. `kaggle_data_engineer_2023.py`, `jobven_jobs.py`)  
    - Download or open the source (Kaggle CSV, Hugging Face dataset, or Jobven API).  
    - Read in chunks or pages; for each row map columns to canonical names and build a `RawJobRow`.  
-   - Optionally fill `skills` from title/description (taxonomy) if `EXTRACT_SKILLS_TAXONOMY=1` (Kaggle DE).  
+   - Optionally fill `skills` from title/description (taxonomy) if `EXTRACT_SKILLS_TAXONOMY=1` (Kaggle DE; Hugging Face uses `job_type_skills` as description and backfills when `job_skills` is null).  
    - Yield batches of `RawJobRow.to_load_dict()`.
 
 5. **ingestion/schema.py**  

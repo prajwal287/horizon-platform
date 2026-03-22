@@ -2,7 +2,43 @@
 
 Use this to run the project end-to-end and to know when each phase is **done**. All commands assume **project root**: `horizon-platform/`.
 
+**Full command-by-command run from zero:** [COMPLETE_EXECUTION_GUIDE.md](COMPLETE_EXECUTION_GUIDE.md) (single document; use if anything here feels fragmented).
+
 **Related docs:** [RUN_SCRIPTS.md](RUN_SCRIPTS.md) · [RUN_FROM_SCRATCH.md](RUN_FROM_SCRATCH.md) · [RUN_FROM_INTERMEDIATE.md](RUN_FROM_INTERMEDIATE.md) · [HOW_IT_WORKS.md](HOW_IT_WORKS.md)
+
+---
+
+## Kaggle Data Engineer Job Postings 2023 — how it is handled
+
+| Topic | Detail |
+|--------|--------|
+| **Source** | Kaggle `lukkardata/data-engineer-job-postings-2023`; ingestion downloads/opens CSV under `data/kaggle/…`. |
+| **Mapping** | `Job_details` → `job_title`, `Job_details.1` → `job_description` (see `ingestion/sources/kaggle_data_engineer_2023.py`). |
+| **Skills** | With **`EXTRACT_SKILLS_TAXONOMY=1`**, each row runs **taxonomy** (regex over curated tools) on title + description. No LLM. Rows whose text never matches a listed skill keep **`skills` null**—that is expected unless you add LLM or expand `ingestion/config.py` (`DATA_ENGINEER_SKILLS` / aliases). |
+| **Other Kaggle pipelines** | LinkedIn-style datasets use their own `skills` columns; this flag only changes **Kaggle DE** and **Hugging Face** loaders. |
+
+---
+
+## Full run from scratch (empty GCP → all sources + taxonomy skills + master)
+
+Do **Phase 0 → 2** first (machine setup, Terraform, `.env` with `GCS_BUCKET`, `GOOGLE_CLOUD_PROJECT`, `BIGQUERY_DATASET`, `KAGGLE_USERNAME`, `KAGGLE_KEY`, optional `JOBVEN_API_KEY`). Use a real project root path, not a placeholder.
+
+Then run **ingestion once** with taxonomy enabled so you do **not** need a separate Phase 6 pass for Kaggle DE and Hugging Face:
+
+```bash
+cd /path/to/horizon-platform
+source .venv/bin/activate
+set -a && source .env && set +a   # or export vars manually
+
+export EXTRACT_SKILLS_TAXONOMY=1
+python3 run_ingestion.py --source all
+python3 scripts/load_gcs_to_bigquery.py --source all
+python3 scripts/create_master_table.py --clean
+```
+
+**Hugging Face:** with the current code, the same flag uses **`job_type_skills`** to fill `job_description` and backfill **`skills`** when `job_skills` is null.
+
+**If you already ingested without taxonomy:** run `./scripts/run_phase6_kaggle_de_skills.sh` (optionally `PHASE6_INCLUDE_HF=1`) to refresh Kaggle DE and HF only, then reload BigQuery and master—see Phase 6 below.
 
 ---
 
@@ -163,7 +199,19 @@ ORDER BY n DESC;
 
 ---
 
-## Phase 6 — Optional: skills taxonomy (Kaggle Data Engineer only)
+## Phase 6 — Optional: skills taxonomy (Kaggle Data Engineer; Hugging Face optional)
+
+**Why some rows still have null `skills`:** Kaggle DE uses whole-word taxonomy matches only—postings that never mention a listed skill stay null. Hugging Face `lukebarousse/data_jobs` often has null `job_skills`; with `EXTRACT_SKILLS_TAXONOMY=1`, ingestion maps `job_type_skills` into `job_description` and backfills `skills` from title + that text (re-ingest HF after pulling the code change).
+
+**One-shot (from project root, with `.env` or exports set):** loads `.env` if present, then runs ingest → load → clean master.
+
+```bash
+./scripts/run_phase6_kaggle_de_skills.sh
+```
+
+Also refresh Hugging Face raw + master (same taxonomy flag): `PHASE6_INCLUDE_HF=1 ./scripts/run_phase6_kaggle_de_skills.sh`.
+
+Skip rebuilding `master_jobs`: `SKIP_MASTER=1 ./scripts/run_phase6_kaggle_de_skills.sh`.
 
 | Step | Command |
 |------|---------|
@@ -210,7 +258,7 @@ python3 scripts/compare_skills_extraction.py --sample 50 --output comparison_ski
 | Goal | Phases |
 |------|--------|
 | **Data in BigQuery for analytics** | 0 → 5 |
-| **Skills on Kaggle DE** | + Phase 6 |
+| **Skills on Kaggle DE + HF (taxonomy) on first full run** | Set `EXTRACT_SKILLS_TAXONOMY=1` during Phase 3 ingest (see **Full run from scratch** above), or run Phase 6 after |
 | **Production-ready platform** | 0 → 5 + Phase 8 |
 
 ---

@@ -30,14 +30,39 @@ Use this when you have **no data** in your GCS bucket or BigQuery yet and want t
 **Step 1 – Set environment variables**
 
 ```bash
+# 1. Authenticate to GCP
+gcloud auth login
+gcloud config set project horizon-platform-488122
+gcloud auth application-default login
+```
+
+```bash
 # Required for ingestion and load (from Terraform outputs or .env)
-export GCS_BUCKET=your-bucket-name
-export GOOGLE_CLOUD_PROJECT=your-project-id
-export BIGQUERY_DATASET=job_market_analysis
+source .venv/bin/activate   
+
+export GCS_BUCKET=$(terraform output -raw gcs_bucket_name)
+export GOOGLE_CLOUD_PROJECT=$(terraform output -raw project_id)
+export BIGQUERY_DATASET=$(terraform output -raw bigquery_dataset_id)
+
+gcloud services enable storage.googleapis.com bigquery.googleapis.com pubsub.googleapis.com iam.googleapis.com --project=$GOOGLE_CLOUD_PROJECT
+
+# Create infrastructure with Terraform
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars: set project_id (and region/names if you want)
+terraform init
+terraform plan
+terraform apply
+
+# 4. Python environment and dependencies
+cd /path/to/horizon-platform
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 
 # Required for Kaggle sources (all 3 Kaggle pipelines need this)
-export KAGGLE_USERNAME=your_kaggle_username
-export KAGGLE_KEY=your_kaggle_api_key
+export KAGGLE_USERNAME=prajwalcn007
+export KAGGLE_KEY=KGAT_64b8db622b10f7cd519d5bc5aeec16ee
 
 # Optional: Jobven (US jobs, last 24h; free tier 300 calls/month)
 # export JOBVEN_API_KEY=your_jobven_api_key
