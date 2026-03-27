@@ -6,7 +6,7 @@ One place to understand **what the project does**, **how data flows**, and **whi
 
 ## 1. What the project does
 
-- **Fetches** job postings from Hugging Face, Kaggle (several datasets), and optionally Jobven (US, last 24h).
+- **Fetches** job postings from Hugging Face and Kaggle (several datasets).
 - **Normalizes** them to one shape (same columns for every source).
 - **Writes** to GCS as Parquet (Step 1), then **loads** into BigQuery raw tables (Step 2).
 - **Optionally** builds a single `master_jobs` view/table (union of all raw tables) for analytics.
@@ -28,7 +28,7 @@ So: **Sources → normalize → GCS (Parquet) → BigQuery (raw_*) → optional 
 ```
 
 - **Step 1:** `run_ingestion.py` runs a dlt pipeline per source. Each pipeline reads from the source (API or CSV), turns rows into the canonical schema, and writes Parquet under `gs://<bucket>/raw/<source_slug>/`.
-- **Step 2:** `scripts/load_gcs_to_bigquery.py` finds those Parquet files and loads them into BigQuery with WRITE_TRUNCATE (replace). Table names: `raw_huggingface_data_jobs`, `raw_kaggle_data_engineer_2023`, `raw_jobven_jobs`, etc.
+- **Step 2:** `scripts/load_gcs_to_bigquery.py` finds those Parquet files and loads them into BigQuery with WRITE_TRUNCATE (replace). Table names: `raw_huggingface_data_jobs`, `raw_kaggle_data_engineer_2023`, etc.
 - **Master:** `scripts/create_master_table.py` builds a view (or table) that UNIONs all existing raw tables so you can query one place.
 
 ---
@@ -50,8 +50,8 @@ So: **Sources → normalize → GCS (Parquet) → BigQuery (raw_*) → optional 
    - The resource iterates over `stream_fn()` and yields each row.  
    - Runs `pipeline.run(..., loader_file_format="parquet")` so dlt writes Parquet to GCS.
 
-4. **ingestion/sources/*.py** (e.g. `kaggle_data_engineer_2023.py`, `jobven_jobs.py`)  
-   - Download or open the source (Kaggle CSV, Hugging Face dataset, or Jobven API).  
+4. **ingestion/sources/*.py** (e.g. `kaggle_data_engineer_2023.py`)  
+   - Download or open the source (Kaggle CSV or Hugging Face dataset).  
    - Read in chunks or pages; for each row map columns to canonical names and build a `RawJobRow`.  
    - Optionally fill `skills` from title/description (taxonomy) if `EXTRACT_SKILLS_TAXONOMY=1` (Kaggle DE; Hugging Face uses `job_type_skills` as description and backfills when `job_skills` is null).  
    - Yield batches of `RawJobRow.to_load_dict()`.
@@ -68,7 +68,7 @@ So: **CLI → pipeline runner → run_pipeline (dlt) → stream_* (source) → R
 ## 4. How Step 2 works (load to BigQuery)
 
 - **scripts/load_gcs_to_bigquery.py**  
-  - For each source (or `--source all`), it knows the GCS prefix (e.g. `raw/kaggle_data_engineer_2023/`, `raw/jobven_jobs/`) and the BigQuery table name (e.g. `raw_kaggle_data_engineer_2023`, `raw_jobven_jobs`).  
+  - For each source (or `--source all`), it knows the GCS prefix (e.g. `raw/kaggle_data_engineer_2023/`) and the BigQuery table name (e.g. `raw_kaggle_data_engineer_2023`).  
   - Uses gcsfs to list Parquet files under that prefix, normalizes URIs to `gs://...`.  
   - Calls BigQuery `load_table_from_uri` with WRITE_TRUNCATE and Parquet format.  
   - So: **GCS Parquet → one raw_* table per source.**
@@ -94,7 +94,7 @@ So: **CLI → pipeline runner → run_pipeline (dlt) → stream_* (source) → R
 | **ingestion/schema.py** | RawJobRow, JOBS_COLUMNS (canonical shape). |
 | **ingestion/pipelines/common.py** | run_pipeline(): dlt resource + GCS destination. |
 | **ingestion/pipelines/run_*.py** | One per source; calls run_pipeline with the right stream_*. |
-| **ingestion/sources/*.py** | Stream rows from Hugging Face / Kaggle / Jobven → RawJobRow batches. |
+| **ingestion/sources/*.py** | Stream rows from Hugging Face / Kaggle → RawJobRow batches. |
 | **ingestion/skills_extraction.py** | Taxonomy (regex) skills from title/description; used if EXTRACT_SKILLS_TAXONOMY=1. |
 | **scripts/load_gcs_to_bigquery.py** | Step 2: GCS Parquet → BigQuery raw_*. |
 | **scripts/create_master_table.py** | Union of raw_* → view or table master_jobs. |

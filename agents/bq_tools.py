@@ -111,7 +111,6 @@ def tool_raw_table_health() -> Dict[str, Any]:
         "raw_kaggle_data_engineer_2023",
         "raw_kaggle_linkedin_postings",
         "raw_kaggle_linkedin_jobs_skills_2024",
-        "raw_jobven_jobs",
     ]
     client = _client()
     out: List[Dict[str, Any]] = []

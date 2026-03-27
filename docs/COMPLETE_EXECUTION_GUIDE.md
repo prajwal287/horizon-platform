@@ -203,9 +203,6 @@ KAGGLE_KEY=your_kaggle_api_key
 
 # Recommended for Kaggle Data Engineer + Hugging Face taxonomy skills
 EXTRACT_SKILLS_TAXONOMY=1
-
-# Optional — only if you use Jobven
-# JOBVEN_API_KEY=your_jobven_key
 ```
 
 `run_ingestion.py` loads `.env` automatically if `python-dotenv` is installed (included in `requirements.txt`).
@@ -243,7 +240,7 @@ set +a
 
 **Step A — Ingest all sources to GCS (Parquet)**
 
-`--source all` runs: Hugging Face, Kaggle Data Engineer, Kaggle LinkedIn, Kaggle LinkedIn Skills, and Jobven **only if** `JOBVEN_API_KEY` is set.
+`--source all` runs: Hugging Face, Kaggle Data Engineer, Kaggle LinkedIn, and Kaggle LinkedIn Skills.
 
 ```bash
 export EXTRACT_SKILLS_TAXONOMY=1
@@ -385,7 +382,6 @@ Set `EXTRACT_SKILLS_TAXONOMY=1` in `.env` before `docker compose run` if you wan
 | `kaggle_data_engineer` | `raw_kaggle_data_engineer_2023` | `KAGGLE_USERNAME` + `KAGGLE_KEY` (or `~/.kaggle/kaggle.json`) |
 | `kaggle_linkedin` | `raw_kaggle_linkedin_postings` | Kaggle |
 | `kaggle_linkedin_skills` | `raw_kaggle_linkedin_jobs_skills_2024` | Kaggle |
-| `jobven` | `raw_jobven_jobs` | `JOBVEN_API_KEY` (optional; omitted from `all` if unset) |
 
 **`EXTRACT_SKILLS_TAXONOMY=1`** affects **Kaggle Data Engineer** and **Hugging Face** loaders only (taxonomy from title/description text; see `ingestion/config.py`).
 

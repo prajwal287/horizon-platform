@@ -21,7 +21,7 @@ Use this to run the project end-to-end and to know when each phase is **done**. 
 
 ## Full run from scratch (empty GCP → all sources + taxonomy skills + master)
 
-Do **Phase 0 → 2** first (machine setup, Terraform, `.env` with `GCS_BUCKET`, `GOOGLE_CLOUD_PROJECT`, `BIGQUERY_DATASET`, `KAGGLE_USERNAME`, `KAGGLE_KEY`, optional `JOBVEN_API_KEY`). Use a real project root path, not a placeholder.
+Do **Phase 0 → 2** first (machine setup, Terraform, `.env` with `GCS_BUCKET`, `GOOGLE_CLOUD_PROJECT`, `BIGQUERY_DATASET`, `KAGGLE_USERNAME`, `KAGGLE_KEY`). Use a real project root path, not a placeholder.
 
 Then run **ingestion once** with taxonomy enabled so you do **not** need a separate Phase 6 pass for Kaggle DE and Hugging Face:
 
@@ -93,8 +93,7 @@ export BIGQUERY_DATASET=$(terraform output -raw bigquery_dataset_id)
 | 2.1 | Copy `.env.example` → `.env` at project root |
 | 2.2 | Set `GOOGLE_CLOUD_PROJECT`, `GCS_BUCKET`, `BIGQUERY_DATASET` to match Terraform outputs |
 | 2.3 | For Kaggle sources: set `KAGGLE_USERNAME` and `KAGGLE_KEY` (or use `~/.kaggle/kaggle.json`) |
-| 2.4 | (Optional) `JOBVEN_API_KEY` for Jobven |
-| 2.5 | Confirm ADC still valid: `gcloud auth application-default print-access-token` (should print a token) |
+| 2.4 | Confirm ADC still valid: `gcloud auth application-default print-access-token` (should print a token) |
 
 **Docker users:** `docker compose` loads `.env` and mounts host ADC — see [README.md](../README.md).
 
@@ -114,7 +113,7 @@ export BIGQUERY_DATASET=$(terraform output -raw bigquery_dataset_id)
 python3 run_ingestion.py --source kaggle_data_engineer
 ```
 
-**Full ingest (all sources; Jobven only if `JOBVEN_API_KEY` set):**
+**Full ingest (all sources):**
 
 ```bash
 python3 run_ingestion.py --source all

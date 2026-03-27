@@ -62,7 +62,7 @@ flowchart LR
 - `pip install dbt-bigquery`
 - `~/.dbt/profiles.yml` from `dbt/profiles.yml.example`
 - `gcloud auth application-default login`
-- **Every** table in `models/sources.yml` must exist, or `dbt run` fails. Remove unused sources (e.g. `raw_jobven_jobs`) if you never load Jobven.
+- **Every** table in `models/sources.yml` must exist in BigQuery, or `dbt run` fails. Remove or comment out any source you do not load.
 
 ---
 

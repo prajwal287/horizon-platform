@@ -185,29 +185,19 @@ KAGGLE_KEY=your_api_key
 
 Or place `~/.kaggle/kaggle.json` with mode `600`.
 
-**Step F4 — Optional Jobven**
-
-```bash
-JOBVEN_API_KEY=your_key
-# Optional tuning:
-# JOBVEN_QUERY=...
-# JOBVEN_PAGE_LIMIT=...
-# JOBVEN_MAX_PAGES=...
-```
-
-**Step F5 — Recommended taxonomy skills** (Kaggle DE + Hugging Face behavior)
+**Step F4 — Recommended taxonomy skills** (Kaggle DE + Hugging Face behavior)
 
 ```bash
 EXTRACT_SKILLS_TAXONOMY=1
 ```
 
-**Step F6 — Optional Kaggle LinkedIn row cap**
+**Step F5 — Optional Kaggle LinkedIn row cap**
 
 ```bash
 # KAGGLE_LINKEDIN_POSTINGS_MAX_ROWS=50000
 ```
 
-**Step F7 — Load env into your shell** (before Python commands)
+**Step F6 — Load env into your shell** (before Python commands)
 
 ```bash
 cd /path/to/horizon-platform
@@ -231,7 +221,6 @@ export EXTRACT_SKILLS_TAXONOMY=1   # if you set it in .env, redundant but explic
 python3 run_ingestion.py --source all
 ```
 
-- `--source all` runs Jobven **only if** `JOBVEN_API_KEY` is set.
 - For a smoke test: `python3 run_ingestion.py --source huggingface`
 
 **Done when:** logs show successful pipeline runs; no tracebacks.
@@ -312,7 +301,7 @@ Edit `~/.dbt/profiles.yml`: set `project` / `dataset` / `location` to match your
 
 **Step K3 — Align `sources.yml` with reality**
 
-If you never load Jobven, remove or comment the `raw_jobven_jobs` source in `dbt/models/sources.yml` so `dbt run` does not fail.
+Every table listed in `dbt/models/sources.yml` must exist in BigQuery (comment out any raw table you do not load).
 
 **Step K4 — Run dbt**
 
@@ -487,7 +476,7 @@ python3 scripts/run_agentic_insights.py --raw-only "What are my raw table row co
 | 4 | gcloud | login, set project, ADC |
 | 5 | APIs | `gcloud services enable ...` |
 | 6 | Terraform | `init`, `plan`, `apply`; capture outputs |
-| 7 | `.env` | `GCS_BUCKET`, `GOOGLE_CLOUD_PROJECT`, `BIGQUERY_DATASET`, Kaggle, optional Jobven |
+| 7 | `.env` | `GCS_BUCKET`, `GOOGLE_CLOUD_PROJECT`, `BIGQUERY_DATASET`, Kaggle |
 | 8 | Ingest | `python3 run_ingestion.py --source all` |
 | 9 | Load | `python3 scripts/load_gcs_to_bigquery.py --source all` |
 | 10 | Master | `python3 scripts/create_master_table.py --clean` |

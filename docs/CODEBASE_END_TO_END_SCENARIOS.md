@@ -6,7 +6,7 @@ This document explains **what the Horizon platform does**, **how the pieces conn
 
 ## 1. One-sentence story
 
-**Job postings** are pulled from **Hugging Face**, **Kaggle** (several datasets), and optionally **Jobven**, normalized to one schema, written as **Parquet in GCS**, loaded into **BigQuery `raw_*` tables**, optionally unioned into **`master_jobs`** (Python), then modeled in **dbt** (bronze → silver → gold), with **tests, CI, data-quality checks**, and a **Gemini agent** that only runs **whitelisted BigQuery queries**.
+**Job postings** are pulled from **Hugging Face** and **Kaggle** (several datasets), normalized to one schema, written as **Parquet in GCS**, loaded into **BigQuery `raw_*` tables**, optionally unioned into **`master_jobs`** (Python), then modeled in **dbt** (bronze → silver → gold), with **tests, CI, data-quality checks**, and a **Gemini agent** that only runs **whitelisted BigQuery queries**.
 
 ---
 
@@ -15,7 +15,7 @@ This document explains **what the Horizon platform does**, **how the pieces conn
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  SOURCES                                                                     │
-│  HF data_jobs · Kaggle CSV/API · Jobven API (24h US jobs)                    │
+│  HF data_jobs · Kaggle CSV/API                                               │
 └───────────────────────────────────┬─────────────────────────────────────────┘
                                     │ Python streams → RawJobRow
                                     ▼
@@ -27,7 +27,7 @@ This document explains **what the Horizon platform does**, **how the pieces conn
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  WAREHOUSE LOAD                                                              │
-│  load_gcs_to_bigquery.py → raw_huggingface_* , raw_kaggle_* , raw_jobven_*   │
+│  load_gcs_to_bigquery.py → raw_huggingface_* , raw_kaggle_*                  │
 └───────────────────────────────────┬─────────────────────────────────────────┘
                                     │
           ┌─────────────────────────┴─────────────────────────┐
@@ -58,7 +58,7 @@ This document explains **what the Horizon platform does**, **how the pieces conn
 | **`ingestion/schema.py`** | Canonical row shape (`RawJobRow`, `JOBS_COLUMNS`). |
 | **`ingestion/config.py`** | Env config, GCS validation helpers, skills taxonomy lists. |
 | **`ingestion/pipelines/common.py`** | Shared dlt `run_pipeline()` (replace, Parquet). |
-| **`ingestion/pipelines/run_*.py`** | One entrypoint per source (HF, Kaggle, Jobven). |
+| **`ingestion/pipelines/run_*.py`** | One entrypoint per source (HF, Kaggle). |
 | **`ingestion/sources/*.py`** | Read source data → yield batches of dicts. |
 | **`ingestion/skills_extraction.py`** | Taxonomy (and optional LLM helpers for eval scripts). |
 | **`scripts/load_gcs_to_bigquery.py`** | Step 2 — Parquet → `raw_*`. |
@@ -111,9 +111,8 @@ Every pipeline outputs the same logical columns (see `ingestion/schema.py`):
 | Kaggle DE | `kaggle_data_engineer` | Kaggle API → CSV under `data/kaggle/...` | `EXTRACT_SKILLS_TAXONOMY=1` fills skills from title + description. |
 | Kaggle LinkedIn postings | `kaggle_linkedin` | Kaggle CSV | Optional `KAGGLE_LINKEDIN_POSTINGS_MAX_ROWS` cap. |
 | Kaggle LinkedIn skills | `kaggle_linkedin_skills` | Kaggle CSV | Native skills columns when present. |
-| Jobven | `jobven` | REST API, `postedAfter` = 24h | Needs `JOBVEN_API_KEY`; optional `JOBVEN_MAX_PAGES`, `JOBVEN_QUERY`. |
 
-**`--source all`** runs every pipeline where credentials exist (Jobven skipped if no API key).
+**`--source all`** runs Hugging Face and all Kaggle pipelines (Kaggle requires `KAGGLE_USERNAME` / `KAGGLE_KEY` or `~/.kaggle/kaggle.json`).
 
 ---
 
@@ -136,7 +135,7 @@ Every pipeline outputs the same logical columns (see `ingestion/schema.py`):
 
 **Goal:** All sources you care about + single view for SQL.
 
-1. Set Kaggle (and optional Jobven) credentials in `.env`.  
+1. Set Kaggle credentials in `.env`.  
 2. `export EXTRACT_SKILLS_TAXONOMY=1`  
 3. `python3 run_ingestion.py --source all`  
 4. `python3 scripts/load_gcs_to_bigquery.py --source all`  
@@ -158,7 +157,7 @@ GROUP BY 1;
 
 **Goal:** Deduped mart and aggregates for BI.
 
-**Prerequisite:** All `raw_*` tables referenced in `dbt/models/sources.yml` exist (remove Jobven from sources if unused).
+**Prerequisite:** All `raw_*` tables referenced in `dbt/models/sources.yml` exist in BigQuery.
 
 1. After load: `cd dbt && dbt run && dbt test`  
 2. Query gold:

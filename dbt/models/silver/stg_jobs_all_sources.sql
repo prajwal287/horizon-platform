@@ -8,5 +8,3 @@ union all
 select * from {{ ref('brz_kaggle_linkedin_postings') }}
 union all
 select * from {{ ref('brz_kaggle_linkedin_jobs_skills_2024') }}
-union all
-select * from {{ ref('brz_jobven_jobs') }}

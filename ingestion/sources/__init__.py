@@ -1,1 +1,1 @@
-# Data sources: Hugging Face, Kaggle, Jobven (free tier)
+# Data sources: Hugging Face, Kaggle (several datasets)

@@ -1,14 +1,14 @@
 # Horizon
 
-The Data Architecture & Agentic AI Intelligence Platform — data-domain job postings ingestion (Hugging Face, Kaggle, Jobven) via **dlt → GCS (Parquet) → BigQuery**. Work primarily in BigQuery with optional Spark jobs.
+The Data Architecture & Agentic AI Intelligence Platform — data-domain job postings ingestion (Hugging Face, Kaggle) via **dlt → GCS (Parquet) → BigQuery**. Work primarily in BigQuery with optional Spark jobs.
 
 ## Architecture: dlt → GCS → BigQuery
 
 1. **Step 1 — dlt → GCS (Parquet)**  
-   `run_ingestion.py` loads sources (Hugging Face, Kaggle, Jobven) and writes Parquet to GCS under `gs://<bucket>/raw/<source_slug>/` (e.g. `raw/huggingface_data_jobs/`, `raw/kaggle_data_engineer_2023/`, `raw/jobven_jobs/`).
+   `run_ingestion.py` loads sources (Hugging Face, Kaggle) and writes Parquet to GCS under `gs://<bucket>/raw/<source_slug>/` (e.g. `raw/huggingface_data_jobs/`, `raw/kaggle_data_engineer_2023/`).
 
 2. **Step 2 — GCS → BigQuery**  
-   `scripts/load_gcs_to_bigquery.py` loads those Parquet files into BigQuery tables in dataset `job_market_analysis` (e.g. `raw_huggingface_data_jobs`, `raw_kaggle_data_engineer_2023`, `raw_jobven_jobs`).
+   `scripts/load_gcs_to_bigquery.py` loads those Parquet files into BigQuery tables in dataset `job_market_analysis` (e.g. `raw_huggingface_data_jobs`, `raw_kaggle_data_engineer_2023`).
 
 3. **Analytics**  
    Run SQL and dbt in BigQuery; Silver/Gold tables live in the same dataset. Spark can read/write BigQuery or GCS as needed.
@@ -37,21 +37,19 @@ The Data Architecture & Agentic AI Intelligence Platform — data-domain job pos
 
 5. **Kaggle credentials** (required for Kaggle sources only): set `KAGGLE_USERNAME` and `KAGGLE_API_TOKEN` (or `KAGGLE_KEY`) in `.env`.
 
-6. **Jobven** (optional, free tier): set `JOBVEN_API_KEY` in `.env` to include US jobs from the last 24h. See [RUN_SCRIPTS.md](docs/RUN_SCRIPTS.md) for limits.
-
-7. **Step 1 — Ingest to GCS (Parquet)**:
+6. **Step 1 — Ingest to GCS (Parquet)**:
    ```bash
    docker compose run --rm app python run_ingestion.py --source all
    ```
-   Or run a single source: `--source huggingface`, `--source kaggle_data_engineer`, `--source jobven`, etc.
+   Or run a single source: `--source huggingface`, `--source kaggle_data_engineer`, etc.
 
-8. **Step 2 — Load GCS Parquet into BigQuery**:
+7. **Step 2 — Load GCS Parquet into BigQuery**:
    ```bash
    docker compose run --rm app python scripts/load_gcs_to_bigquery.py --source all
    ```
-   Or load a single source: `--source kaggle_data_engineer`, `--source jobven`, etc.
+   Or load a single source: `--source kaggle_data_engineer`, etc.
 
-After both steps, tables `raw_huggingface_data_jobs`, `raw_kaggle_data_engineer_2023`, `raw_jobven_jobs`, etc. appear in BigQuery dataset `job_market_analysis`.
+After both steps, tables such as `raw_huggingface_data_jobs` and `raw_kaggle_data_engineer_2023` appear in BigQuery dataset `job_market_analysis`.
 
 ## Inspecting Kaggle CSV columns (for correct mapping)
 

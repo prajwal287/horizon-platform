@@ -203,8 +203,6 @@ Kaggle is **not** created or configured by Terraform. The **Python ingestion cod
 - **What happens:** When you run ingestion for a Kaggle source (e.g. `run_ingestion.py --source kaggle_data_engineer`), the code calls Kaggle’s API to download the dataset (e.g. to `data/kaggle/...`). That’s an **HTTPS request to Kaggle** with your Kaggle credentials—no GCP involved in that step.
 - **Summary:** GCP = your credentials (ADC). Kaggle = your Kaggle username + key (file or env). Two separate connections.
 
-**Jobven (optional):** Jobven is a separate API for US jobs from the last 24h. Set **`JOBVEN_API_KEY`** in `.env` to enable. Free tier: 300 API calls/month, 10 jobs per page; the pipeline caps at 3 pages per run. See [RUN_SCRIPTS.md](RUN_SCRIPTS.md) for details.
-
 ---
 
 # Part 2: DLT – How it works and how we use it
