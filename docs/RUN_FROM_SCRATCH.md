@@ -223,11 +223,10 @@ All pipelines (Hugging Face, Kaggle Data Engineer, etc.) go through **one shared
 
 - **Inputs:** A pipeline name, a dataset name (used in the path), and a **stream function** that yields **batches of dicts** (each dict = one job row).
 - **What it does:**
-  1. Builds the **GCS path** for that dataset: `gs://{bucket}/raw/{dataset_name}`.
-  2. Sets **`DESTINATION__FILESYSTEM__BUCKET_URL`** to that path. (dlt reads this env var when the destination is `filesystem` and the URL is `gs://...`.)
-  3. Defines a **dlt resource**: a generator that, when run, calls your stream function and yields one dict per job row.
-  4. Creates a **dlt pipeline** with `destination="filesystem"` and `dataset_name=...`.
-  5. Runs the pipeline with that resource and **loader_file_format="parquet"**.
+  1. Sets **`DESTINATION__FILESYSTEM__BUCKET_URL`** to **`gs://{bucket}/raw`** (prefix only; dlt appends `dataset_name` as the next path segment).
+  2. Defines a **dlt resource**: a generator that, when run, calls your stream function and yields one dict per job row.
+  3. Creates a **dlt pipeline** with `destination="filesystem"` and `dataset_name=...` (final layout: `gs://{bucket}/raw/{dataset_name}/`).
+  4. Runs the pipeline with that resource and **loader_file_format="parquet"**.
 
 So: **stream function** (e.g. `stream_kaggle_data_engineer_2023`) → **batches of dicts** → **resource** yields one dict per row → **dlt** writes Parquet under the given GCS path. The **columns** (schema) come from **`JOBS_COLUMNS`** in `ingestion/schema.py` so every pipeline writes the same shape.
 
@@ -251,7 +250,7 @@ So: **stream function** (e.g. `stream_kaggle_data_engineer_2023`) → **batches 
 
 3. **`run_pipeline`** (in `common.py`):
    - Gets **bucket base** from **`get_gcs_base_url()`** (uses `GCS_BUCKET` from config).
-   - Sets **`DESTINATION__FILESYSTEM__BUCKET_URL`** = `gs://{bucket}/raw/kaggle_data_engineer_2023`.
+   - Sets **`DESTINATION__FILESYSTEM__BUCKET_URL`** = `gs://{bucket}/raw` (dlt adds `dataset_name` → `.../raw/kaggle_data_engineer_2023/`).
    - Defines **`jobs_resource()`**: for each batch from **`stream_kaggle_data_engineer_2023()`**, yields each row dict. The resource is decorated with **`@dlt.resource(name="jobs", write_disposition="replace", columns=JOBS_COLUMNS)`**.
    - Creates **`dlt.pipeline(pipeline_name=..., destination="filesystem", dataset_name=...)`**.
    - Runs **`pipeline.run(jobs_resource(), loader_file_format="parquet")`**.

@@ -36,7 +36,7 @@ resource "google_cloud_scheduler_job" "horizon_pipeline_signal" {
   count    = var.enable_pipeline_scheduler ? 1 : 0
   name     = "horizon-daily-pipeline-signal"
   project  = var.project_id
-  location = var.pipeline_scheduler_region
+  region   = var.pipeline_scheduler_region
 
   schedule  = var.pipeline_scheduler_cron
   time_zone = var.pipeline_scheduler_timezone

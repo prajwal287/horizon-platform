@@ -34,7 +34,8 @@ jobs:
           python-version: "3.11"
 
       - name: Install dbt
-        run: pip install "dbt-bigquery>=1.8.0"
+        # Match requirements-dev.txt: avoid dbt-core>=1.10.9 (protobuf>=6) vs google-generativeai (protobuf<6)
+        run: pip install "dbt-core>=1.10.0,<1.10.9" "dbt-bigquery>=1.10.0,<1.11"
 
       - name: Minimal BigQuery profile (parse only)
         run: |

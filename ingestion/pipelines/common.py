@@ -21,9 +21,10 @@ def run_pipeline(
     stream_fn: Callable[[], Iterator[list[dict]]],
 ) -> dlt.Pipeline:
     """Run one dlt pipeline: stream_fn() yields batches → dlt writes Parquet to gs://bucket/raw/<dataset_name>/ (replace)."""
+    # dlt filesystem destination appends dataset_name under BUCKET_URL; do not repeat dataset_name here or paths become
+    # raw/<dataset>/<dataset>/ and load_gcs_to_bigquery.py (raw/<suffix>/) will not find Parquet.
     bucket_base = get_gcs_base_url()
-    bucket_url = f"{bucket_base.rstrip('/')}/{dataset_name}"
-    os.environ["DESTINATION__FILESYSTEM__BUCKET_URL"] = bucket_url
+    os.environ["DESTINATION__FILESYSTEM__BUCKET_URL"] = bucket_base.rstrip("/")
 
     @dlt.resource(name=TABLE_NAME, write_disposition="replace", columns=JOBS_COLUMNS)
     def jobs_resource() -> Iterator[dict]:

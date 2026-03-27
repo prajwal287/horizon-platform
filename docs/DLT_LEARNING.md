@@ -42,16 +42,17 @@ dlt does **not** load BigQuery in this repo’s step 1; that is intentional (lak
 
 All sources go through **one** function:
 
-```18:41:ingestion/pipelines/common.py
+```18:42:ingestion/pipelines/common.py
 def run_pipeline(
     pipeline_name: str,
     dataset_name: str,
     stream_fn: Callable[[], Iterator[list[dict]]],
 ) -> dlt.Pipeline:
     """Run one dlt pipeline: stream_fn() yields batches → dlt writes Parquet to gs://bucket/raw/<dataset_name>/ (replace)."""
+    # dlt filesystem destination appends dataset_name under BUCKET_URL; do not repeat dataset_name here or paths become
+    # raw/<dataset>/<dataset>/ and load_gcs_to_bigquery.py (raw/<suffix>/) will not find Parquet.
     bucket_base = get_gcs_base_url()
-    bucket_url = f"{bucket_base.rstrip('/')}/{dataset_name}"
-    os.environ["DESTINATION__FILESYSTEM__BUCKET_URL"] = bucket_url
+    os.environ["DESTINATION__FILESYSTEM__BUCKET_URL"] = bucket_base.rstrip("/")
 
     @dlt.resource(name=TABLE_NAME, write_disposition="replace", columns=JOBS_COLUMNS)
     def jobs_resource() -> Iterator[dict]:
@@ -71,8 +72,8 @@ def run_pipeline(
 
 **Read this as:**
 
-1. Build **GCS base path**: `gs://<GCS_BUCKET>/raw/<dataset_name>/` (via `get_gcs_base_url()` + `dataset_name`).
-2. Tell dlt’s filesystem destination that URL (`DESTINATION__FILESYSTEM__BUCKET_URL`).
+1. Set **`DESTINATION__FILESYSTEM__BUCKET_URL`** to **`gs://<GCS_BUCKET>/raw`** (`get_gcs_base_url()`). dlt adds **`dataset_name`** so files land under **`gs://<bucket>/raw/<dataset_name>/`** (matches `load_gcs_to_bigquery.py`).
+2. Do **not** put `dataset_name` in the bucket URL env var, or you get a doubled folder and loads fail or write to the wrong prefix.
 3. Define a **resource** `jobs` that:
    - Calls your `stream_fn()` (e.g. Hugging Face or Kaggle),
    - Flattens **batch → single rows** with `yield row` (dlt consumes a stream of rows).

@@ -45,7 +45,7 @@ So: **Sources → normalize → GCS (Parquet) → BigQuery (raw_*) → optional 
    - `stream_fn` is the function that yields batches of job rows (e.g. `stream_kaggle_data_engineer_2023`).
 
 3. **ingestion/pipelines/common.py**  
-   - `run_pipeline()` sets the dlt destination URL to `gs://<bucket>/raw/<dataset_name>/`.  
+   - `run_pipeline()` sets **`DESTINATION__FILESYSTEM__BUCKET_URL`** to `gs://<bucket>/raw`; dlt then adds **`dataset_name`**, so Parquet lands under `gs://<bucket>/raw/<dataset_name>/`.  
    - Defines one dlt resource `jobs` with columns from `ingestion/schema.JOBS_COLUMNS`.  
    - The resource iterates over `stream_fn()` and yields each row.  
    - Runs `pipeline.run(..., loader_file_format="parquet")` so dlt writes Parquet to GCS.
