@@ -52,3 +52,25 @@ output "pipeline_scheduler_job" {
   description = "Cloud Scheduler job name when enable_pipeline_scheduler is true"
   value       = var.enable_pipeline_scheduler ? google_cloud_scheduler_job.horizon_pipeline_signal[0].name : null
 }
+
+# --- Streamlit / Cloud Run (when enable_streamlit_cloud_run) ---
+
+output "streamlit_service_uri" {
+  description = "HTTPS URL of the Streamlit Cloud Run service"
+  value       = var.enable_streamlit_cloud_run ? google_cloud_run_v2_service.streamlit[0].uri : null
+}
+
+output "streamlit_image_uri" {
+  description = "Container image URI Terraform deploys (build and push before apply)"
+  value       = var.enable_streamlit_cloud_run ? local.streamlit_image_effective : null
+}
+
+output "streamlit_artifact_registry_repository" {
+  description = "Artifact Registry repo resource id (Docker)"
+  value       = var.enable_streamlit_cloud_run ? google_artifact_registry_repository.streamlit[0].id : null
+}
+
+output "streamlit_cloudrun_service_account_email" {
+  description = "Service account attached to Cloud Run (BigQuery job user + dataset dataViewer)"
+  value       = var.enable_streamlit_cloud_run ? google_service_account.streamlit_cloudrun[0].email : null
+}

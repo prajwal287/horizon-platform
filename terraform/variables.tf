@@ -69,3 +69,97 @@ variable "pipeline_scheduler_region" {
   type        = string
   default     = "us-central1"
 }
+
+# -----------------------------------------------------------------------------
+# Streamlit on Cloud Run (optional)
+# -----------------------------------------------------------------------------
+
+variable "enable_streamlit_cloud_run" {
+  description = "If true, create Artifact Registry repo, Cloud Run v2 service, and SA with BigQuery read access for the Streamlit dashboard."
+  type        = bool
+  default     = false
+}
+
+variable "streamlit_cloud_run_service_name" {
+  description = "Cloud Run service name (must be unique per region)."
+  type        = string
+  default     = "horizon-streamlit"
+}
+
+variable "streamlit_service_account_id" {
+  description = "GCP service account account_id (6–30 chars) for the Cloud Run revision (not the default compute SA)."
+  type        = string
+  default     = "horizon-streamlit-cr"
+}
+
+variable "streamlit_artifact_registry_repo" {
+  description = "Artifact Registry Docker repository id for Streamlit images."
+  type        = string
+  default     = "horizon-streamlit"
+}
+
+variable "streamlit_image_name" {
+  description = "Docker image name inside the Artifact Registry repo (without tag)."
+  type        = string
+  default     = "dashboard"
+}
+
+variable "streamlit_image_tag" {
+  description = "Docker image tag when streamlit_container_image is unset."
+  type        = string
+  default     = "latest"
+}
+
+variable "streamlit_container_image" {
+  description = "Full container image URI (overrides region/project/repo/name/tag). Must exist in Artifact Registry before terraform apply can succeed."
+  type        = string
+  default     = ""
+}
+
+variable "streamlit_ingress_all" {
+  description = "If true, INGRESS_TRAFFIC_ALL (public URL). If false, INGRESS_TRAFFIC_INTERNAL_ONLY (VPC / internal access patterns)."
+  type        = bool
+  default     = true
+}
+
+variable "streamlit_allow_unauthenticated" {
+  description = "If true, grant roles/run.invoker to allUsers (only meaningful when streamlit_ingress_all is true)."
+  type        = bool
+  default     = true
+}
+
+variable "streamlit_min_instances" {
+  description = "Cloud Run min instances (0 allows scale-to-zero)."
+  type        = number
+  default     = 0
+}
+
+variable "streamlit_max_instances" {
+  description = "Cloud Run max instances."
+  type        = number
+  default     = 3
+}
+
+variable "streamlit_max_concurrency" {
+  description = "Max concurrent requests per instance (Streamlit is single-user heavy; lower if sessions conflict)."
+  type        = number
+  default     = 40
+}
+
+variable "streamlit_request_timeout_seconds" {
+  description = "Request timeout for the service (seconds)."
+  type        = number
+  default     = 300
+}
+
+variable "streamlit_cpu" {
+  description = "CPU limit for the Streamlit container (e.g. 1 or 2)."
+  type        = string
+  default     = "1"
+}
+
+variable "streamlit_memory" {
+  description = "Memory limit (e.g. 1Gi, 512Mi)."
+  type        = string
+  default     = "1Gi"
+}

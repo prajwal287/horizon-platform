@@ -12,3 +12,11 @@ project_name = "Horizon-platform"
 # pubsub_topic_name     = "job-stream-input"
 # service_account_name  = "lakehouse-sa"
 # lifecycle_nearline_days = 90
+
+# Streamlit on Cloud Run (optional). Build/push the image FIRST using URI:
+#   ${region}-docker.pkg.dev/${project_id}/horizon-streamlit/dashboard:latest
+# (defaults: horizon-streamlit repo, dashboard image). Then:
+# enable_streamlit_cloud_run      = true
+# streamlit_allow_unauthenticated = true
+# streamlit_ingress_all          = true
+# streamlit_container_image      = ""  # or set full URI to override defaults

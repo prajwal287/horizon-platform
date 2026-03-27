@@ -4,6 +4,47 @@ The usual pattern is **Cloud Run**: HTTPS URL, pay per request, no servers to pa
 
 ---
 
+## 0. Terraform (recommended)
+
+The repo includes **`terraform/streamlit.tf`**: Artifact Registry (Docker), dedicated service account, `roles/bigquery.jobUser` + dataset **`roles/bigquery.dataViewer`**, and a **Cloud Run v2** service.
+
+1. **Image must exist** in Artifact Registry before `apply` can succeed (Cloud Run validates the image). From **repo root**, with `REGION` and `PROJECT_ID` matching `terraform.tfvars`:
+
+   ```bash
+   export REGION=us-central1
+   export PROJECT_ID=your-project-id
+   export IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/horizon-streamlit/dashboard:latest"
+
+   gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+
+   docker build -f Dockerfile.streamlit -t "${IMAGE}" .
+   docker push "${IMAGE}"
+   ```
+
+   (Default repo/image names match `streamlit_artifact_registry_repo` = `horizon-streamlit` and `streamlit_image_name` = `dashboard`.)
+
+2. **Enable** in `terraform/terraform.tfvars`:
+
+   ```hcl
+   enable_streamlit_cloud_run = true
+   ```
+
+3. **Apply**:
+
+   ```bash
+   cd terraform
+   terraform init
+   terraform apply
+   ```
+
+4. **Outputs**: `streamlit_service_uri` (app URL), `streamlit_cloudrun_service_account_email`, `streamlit_image_uri`.
+
+**Flags:** `streamlit_allow_unauthenticated` (default `true`) and `streamlit_ingress_all` (default `true`). For private access, set `streamlit_allow_unauthenticated = false`, `streamlit_ingress_all` per your networking needs, and grant **`roles/run.invoker`** to users or groups.
+
+**If `apply` fails** on Cloud Run with an image error, confirm `docker push` succeeded and the URI matches `terraform plan` (see variable defaults or set `streamlit_container_image`).
+
+---
+
 ## 1. What you need
 
 - **GCP project** with **Artifact Registry** (Docker) and **Cloud Run API** enabled.
