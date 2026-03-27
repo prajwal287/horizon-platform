@@ -11,5 +11,6 @@ horizon_platform:
       dataset: job_market_analysis
       threads: 4
       timeout_seconds: 300
-      location: US
+      # Match Terraform google_bigquery_dataset.location (default us-central1)
+      location: us-central1
       # Optional: dataproc_region, etc.

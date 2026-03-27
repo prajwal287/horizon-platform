@@ -4,7 +4,8 @@ sources:
   - name: lakehouse_raw
     description: >
       Raw tables produced by scripts/load_gcs_to_bigquery.py (dlt → GCS → BigQuery).
-      All listed tables must exist in the dataset or dbt run will fail.
+      Optional sources: set var raw_tables_present (see dbt_project.yml) or run
+      scripts/dbt_raw_tables_vars.py so dbt matches loaded tables (get_relation is not used at parse).
     database: "{{ env_var('GOOGLE_CLOUD_PROJECT') }}"
     schema: "{{ env_var('BIGQUERY_DATASET', 'job_market_analysis') }}"
     tables:

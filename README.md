@@ -70,6 +70,11 @@ For other Kaggle sources: `kaggle_linkedin`, `kaggle_linkedin_skills`.
 - **ingestion/** — dlt pipelines (step 1: write Parquet to GCS). Shared runner and schema in `ingestion/pipelines/common.py` and `ingestion/schema.py`.
 - **scripts/** — `load_gcs_to_bigquery.py` (step 2: GCS → BigQuery), `create_master_table.py` (master_jobs view/table), `compare_skills_extraction.py` (eval), `inspect_kaggle_csv.py` (dev helper).
 - **run_ingestion.py** — CLI for step 1 (dlt → GCS).
+- **streamlit_app/** — Browser UI to explore `master_jobs` / `raw_*` in BigQuery (`streamlit run streamlit_app/app.py` or `docker compose up streamlit` → http://localhost:8501).
+
+## Streamlit dashboard (optional)
+
+After raw tables (or `master_jobs`) exist in BigQuery: **`streamlit run streamlit_app/app.py`** from repo root (same `.env` and ADC as ingestion). Or **`docker compose up streamlit`** and open port **8501** (mounts gcloud ADC like the `app` service). **Step-by-step testing:** [docs/STREAMLIT_TESTING.md](docs/STREAMLIT_TESTING.md). **Deploy on GCP (Cloud Run):** [docs/STREAMLIT_HOSTING_GCP.md](docs/STREAMLIT_HOSTING_GCP.md).
 
 ## Documentation
 
@@ -81,6 +86,8 @@ For other Kaggle sources: `kaggle_linkedin`, `kaggle_linkedin_skills`.
 - **[RUN_SCRIPTS.md](docs/RUN_SCRIPTS.md)** — How to run: ingestion, load to BigQuery, master table, skills.
 - **[HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md)** — How the code works end-to-end (flow, which file does what).
 - **[RUN_FROM_SCRATCH.md](docs/RUN_FROM_SCRATCH.md)** — First-time setup: Terraform, GCP, then run pipeline.
+- **[STREAMLIT_TESTING.md](docs/STREAMLIT_TESTING.md)** — Prerequisites, local/Docker run, and a manual UI checklist for the Streamlit explorer.
+- **[STREAMLIT_HOSTING_GCP.md](docs/STREAMLIT_HOSTING_GCP.md)** — Host the dashboard on **Cloud Run** (Artifact Registry, IAM, env vars).
 - **[RUN_FROM_INTERMEDIATE.md](docs/RUN_FROM_INTERMEDIATE.md)** — Resume from where you left off (no full re-run).
 - [MASTER_TABLE_SPEC.md](docs/MASTER_TABLE_SPEC.md) — Master table columns, adding skills, clean view.
 - [WHEN_TO_USE_DBT.md](docs/WHEN_TO_USE_DBT.md) — When to introduce dbt for transformations.

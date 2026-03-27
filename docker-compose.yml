@@ -19,3 +19,25 @@ services:
       - KAGGLE_KEY=${KAGGLE_KEY:-}
       - KAGGLE_API_TOKEN=${KAGGLE_API_TOKEN:-}
     command: tail -f /dev/null
+
+  streamlit:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - ${HOME}/.config/gcloud:/app/gcloud:ro
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcloud/application_default_credentials.json
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-${GCP_PROJECT:-}}
+      - BIGQUERY_DATASET=${BIGQUERY_DATASET:-job_market_analysis}
+    command:
+      [
+        "streamlit",
+        "run",
+        "streamlit_app/app.py",
+        "--server.address=0.0.0.0",
+        "--server.port=8501",
+      ]

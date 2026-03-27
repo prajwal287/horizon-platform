@@ -5,6 +5,10 @@ Post-load data quality: raw table row counts + max(ingested_at). Optional strict
 Usage (from project root, ADC + env):
   python scripts/data_quality_checks.py
   python scripts/data_quality_checks.py --strict --max-age-hours 72
+  python scripts/data_quality_checks.py --strict --ignore-stale   # require tables + row counts only
+
+Stale = max(ingested_at) older than --max-age-hours unless --ignore-stale. Refresh with run_ingestion
++ load_gcs_to_bigquery, raise --max-age-hours (e.g. 168), or use --ignore-stale for “data exists” gates only.
 
 Requires: GOOGLE_CLOUD_PROJECT, BIGQUERY_DATASET (optional).
 """
@@ -21,6 +25,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agents.bq_tools import tool_raw_table_health
 
+# Sources you may skip in BigQuery; do not fail --strict when the table is absent (same idea as dbt raw_tables_present).
+_OPTIONAL_RAW = frozenset({"raw_kaggle_linkedin_postings"})
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="BigQuery raw table health checks.")
@@ -34,6 +41,11 @@ def main() -> int:
         type=float,
         default=None,
         help="If set, fail strict mode when last_ingested is older than this many hours.",
+    )
+    parser.add_argument(
+        "--ignore-stale",
+        action="store_true",
+        help="With --strict, skip freshness (max-age) failures; still enforce present tables and row counts.",
     )
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON only.")
     args = parser.parse_args()
@@ -56,6 +68,9 @@ def main() -> int:
     for t in tables:
         name = t.get("table", "?")
         if t.get("error") == "not_found":
+            if name in _OPTIONAL_RAW:
+                print(f"  (strict) optional table missing — ignored: {name}", file=sys.stderr)
+                continue
             failures.append(f"{name}: table missing")
             continue
         if t.get("error"):
@@ -64,7 +79,11 @@ def main() -> int:
         n = t.get("row_count")
         if n is None or n == 0:
             failures.append(f"{name}: zero or unknown rows")
-        if args.max_age_hours and t.get("last_ingested"):
+        if (
+            args.max_age_hours
+            and not args.ignore_stale
+            and t.get("last_ingested")
+        ):
             try:
                 # BigQuery TIMESTAMP string often ISO-like
                 raw = str(t["last_ingested"]).replace("Z", "+00:00")

@@ -1,0 +1,20 @@
+# Production-oriented image for Streamlit only (BigQuery explorer via workload identity / service account).
+# Build: docker build -f Dockerfile.streamlit -t horizon-streamlit .
+# Run locally: docker run --rm -p 8501:8501 -e GOOGLE_CLOUD_PROJECT=... -e BIGQUERY_DATASET=... -v $HOME/.config/gcloud:/root/.config/gcloud:ro horizon-streamlit
+# Deploy: see docs/STREAMLIT_HOSTING_GCP.md
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY streamlit_app/ ./streamlit_app/
+
+RUN chmod +x streamlit_app/entrypoint_cloud_run.sh
+
+ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+
+EXPOSE 8080
+
+ENTRYPOINT ["./streamlit_app/entrypoint_cloud_run.sh"]

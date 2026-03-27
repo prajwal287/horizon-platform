@@ -209,6 +209,13 @@ def gcs_bucket_config_error(bucket: str) -> Optional[str]:
         )
     if len(bucket) < 3 or len(bucket) > 222:
         return f"GCS_BUCKET length ({len(bucket)}) is not a valid GCS bucket name."
+    # Terraform: google_storage_bucket.raw.name = "${var.project_id}-${var.gcs_bucket_name}" (suffix alone is wrong).
+    if bucket == "job-lakehouse-raw":
+        return (
+            'GCS_BUCKET is the Terraform *suffix* only (job-lakehouse-raw), not the actual bucket. '
+            "The bucket created by this repo is \"<GOOGLE_CLOUD_PROJECT>-job-lakehouse-raw\". "
+            "Fix: export GCS_BUCKET=$(terraform -chdir=terraform output -raw gcs_bucket_name)"
+        )
     return None
 
 
