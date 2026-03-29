@@ -21,9 +21,14 @@ The app satisfies a typical “**two tiles**” style requirement:
 | **Categorical** | Bar chart: **job counts by `source_id`** (Hugging Face vs Kaggle sources). |
 | **Temporal** | Line chart: **postings over time** (monthly aggregation from `posted_date`). |
 
-There is also a **third area**: browse rows, search, filters, and CSV export—the same dataset powers all views.
+Extra **chart** tabs include **top skills by year** and **top hiring companies** (see `streamlit_app/app.py`). There is also **browse**: rows, search, filters, and CSV export.
 
-Run locally: `streamlit run streamlit_app/app.py` (with BigQuery data and ADC). Deploy: see [GUIDE_GCP_HOSTING.md](GUIDE_GCP_HOSTING.md).
+| Access | How |
+|--------|-----|
+| **Local** | Repo root: `streamlit run streamlit_app/app.py` → http://localhost:8501 |
+| **Cloud Run** | After deploy: `terraform -chdir=terraform output -raw streamlit_service_uri`. Example URL (may differ after redeploy): https://horizon-streamlit-c3eqmsiy5a-uc.a.run.app |
+
+Deploy and refresh the image: [GUIDE_GCP_HOSTING.md](GUIDE_GCP_HOSTING.md). Root [README.md](../README.md) lists the same quick links.
 
 ---
 
@@ -77,7 +82,7 @@ Mapping to typical **0 / 2 / 4** scoring. **Streaming** items are *not* claimed�
 | **Stream** (Kafka, etc.) | — | **N/A — batch path selected.** |
 | **Data warehouse** | 4 | **BigQuery** hosts `raw_*`, optional `master_jobs`, and dbt output datasets. **Optimization (partition + cluster):** `mart_jobs_curated` is a **table** partitioned by **`posted_date`** (month) and clustered by **`source_id`**, **`content_quality_bucket`**—matching dashboard filters (date range, source, quality). **`mart_posting_volume`** is partitioned by **`posting_month`** and clustered by **`source_id`** for monthly time-series by source. Raw loads use autodetect and are unpartitioned; analytics paths should prefer gold marts when possible. |
 | **Transformations (dbt, Spark, …)** | 4 | **dbt** medallion project under **`dbt/`** (bronze → silver → gold), not one-off SQL only. Spark is optional for future scale (documented in root README). |
-| **Dashboard** | 4 | **Streamlit:** **(1)** categorical — bar chart of counts by **`source_id`**; **(2)** temporal — line chart of monthly posting volume. Tab 3 is browse/export (beyond the two required tiles). |
+| **Dashboard** | 4 | **Streamlit:** **(1)** categorical — bar chart by **`source_id`**; **(2)** temporal — monthly volume; plus **skills by year**, **top companies**, **browse/export** — exceeds the “two tiles” minimum. |
 | **Reproducibility** | 4 | **`GUIDE_END_TO_END.md`** step order, **`.env.example`**, **`terraform/terraform.tfvars.example`**, **`docker-compose.yml`**, **`scripts/run_batch_pipeline.sh`**, **`dbt/README.md`**, plus CI in **`.github/workflows/ci.yml`**. |
 
 **Extras (often ungraded but portfolio-friendly):** pytest + ruff in CI, `scripts/data_quality_checks.py`, optional Secret Manager / automation in Terraform—see guides.

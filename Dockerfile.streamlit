@@ -9,6 +9,8 @@ WORKDIR /app
 COPY requirements-streamlit.txt .
 RUN pip install --no-cache-dir -r requirements-streamlit.txt
 
+# app.py imports ingestion.env_bootstrap (repo-root layout); image WORKDIR is /app
+COPY ingestion ./ingestion
 COPY streamlit_app/ ./streamlit_app/
 
 # CRLF in shell scripts breaks kernel exec (shebang becomes /bin/sh\r → "no such file").

@@ -2,6 +2,8 @@
 
 This guide explains **how Horizon’s Streamlit dashboard is hosted on GCP**, why **ingress** matters, and how pieces fit together. Terraform in this repo can provision the same pattern under `terraform/streamlit.tf`.
 
+**Your live URL after apply:** `terraform -chdir=terraform output -raw streamlit_service_uri` (from repo root). Root **[README.md](../README.md)** also lists an **example** Cloud Run URL and the evaluation rubric for reviewers.
+
 ---
 
 ## Why Cloud Run?

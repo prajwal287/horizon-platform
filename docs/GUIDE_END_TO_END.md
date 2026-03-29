@@ -151,7 +151,7 @@ streamlit run streamlit_app/app.py
 
 Or: `docker compose up streamlit` → http://localhost:8501
 
-**Cloud Run:** [GUIDE_GCP_HOSTING.md](GUIDE_GCP_HOSTING.md).
+**Cloud Run:** [GUIDE_GCP_HOSTING.md](GUIDE_GCP_HOSTING.md). HTTPS URL: `terraform -chdir=terraform output -raw streamlit_service_uri`. Root [README.md](../README.md) has quick links + rubric.
 
 ---
 

@@ -1,4 +1,8 @@
-# Copy to ~/.dbt/profiles.yml and adjust project_id / location.
+# Copy to ~/.dbt/profiles.yml (or merge the horizon_platform block into your existing file).
+#
+# Before dbt run: export GOOGLE_CLOUD_PROJECT=<real-id>  (same as Terraform / .env — NOT a placeholder string)
+# Optional: export BIGQUERY_DATASET=job_market_analysis if not using the default below.
+#
 # Auth: method oauth uses Application Default Credentials (gcloud auth application-default login).
 
 horizon_platform:
@@ -7,10 +11,9 @@ horizon_platform:
     dev:
       type: bigquery
       method: oauth
-      project: YOUR_GCP_PROJECT_ID
-      dataset: job_market_analysis
+      project: "{{ env_var('GOOGLE_CLOUD_PROJECT') }}"
+      dataset: "{{ env_var('BIGQUERY_DATASET', 'job_market_analysis') }}"
       threads: 4
       timeout_seconds: 300
       # Match Terraform google_bigquery_dataset.location (default us-central1)
       location: us-central1
-      # Optional: dataproc_region, etc.

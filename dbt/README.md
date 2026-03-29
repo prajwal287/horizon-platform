@@ -5,16 +5,18 @@ Ingestion stays in the parent repo. This project transforms **`raw_*`** into **`
 ## Quick start
 
 ```bash
-pip install dbt-bigquery
-cp profiles.yml.example ~/.dbt/profiles.yml   # set project, location
+pip install -r ../requirements-dev.txt   # or: pip install "dbt-bigquery>=1.10,<1.11"
+cp profiles.yml.example ~/.dbt/profiles.yml
 
-export GOOGLE_CLOUD_PROJECT=your-project-id
-export BIGQUERY_DATASET=job_market_analysis
+export GOOGLE_CLOUD_PROJECT=horizon-platform-488122   # your real GCP project id (never YOUR_GCP_PROJECT_ID)
+export BIGQUERY_DATASET=job_market_analysis           # optional; default is already this in profiles example
 cd dbt
 dbt debug
 dbt run
 dbt test
 ```
+
+The profile uses **`env_var('GOOGLE_CLOUD_PROJECT')`**. If dbt errors with `projects/YOUR_GCP_PROJECT_ID`, your shell or an old `~/.dbt/profiles.yml` still has the placeholder—fix the env var or re-copy **`profiles.yml.example`**.
 
 ## Main gold outputs
 
