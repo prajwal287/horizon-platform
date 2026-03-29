@@ -436,37 +436,7 @@ echo -n "your-payload" | gcloud secrets versions add horizon-pipeline-secrets --
 
 ---
 
-## Part Q — Agentic insights (optional)
-
-**Prerequisites:** ADC; `dbt` gold built; Gemini API key.
-
-**Step Q1 — Environment**
-
-```bash
-export GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID
-export BIGQUERY_DATASET=job_market_analysis
-export DBT_GOLD_DATASET=dbt_gold
-export GOOGLE_API_KEY=your_gemini_key
-gcloud auth application-default login
-```
-
-**Step Q2 — Run**
-
-```bash
-cd /path/to/horizon-platform
-source .venv/bin/activate
-python3 scripts/run_agentic_insights.py "Which source has the most complete rows in the gold mart?"
-```
-
-Raw-only mode:
-
-```bash
-python3 scripts/run_agentic_insights.py --raw-only "What are my raw table row counts?"
-```
-
----
-
-## Part R — Final checklist (full stack)
+## Part Q — Final checklist (full stack)
 
 | # | Step | Command / action |
 |---|------|------------------|

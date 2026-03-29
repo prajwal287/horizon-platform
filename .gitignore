@@ -11,6 +11,11 @@ secrets/
 .env
 .dlt/
 
+# Local API / editor secrets (never commit)
+.streamlit/secrets.toml
+kaggle.json
+**/application_default_credentials.json
+
 # Python
 .venv/
 venv/

@@ -1,7 +1,6 @@
 variable "project_id" {
-  description = "GCP Project ID"
+  description = "GCP Project ID (set in terraform.tfvars; do not commit real tfvars)"
   type        = string
-  default     = "horizon-platform-488122"
 }
 
 variable "project_name" {
@@ -159,7 +158,7 @@ variable "streamlit_cpu" {
 }
 
 variable "streamlit_memory" {
-  description = "Memory limit (e.g. 1Gi, 512Mi)."
+  description = "Memory limit (e.g. 2Gi, 1Gi). Prefer 2Gi if OOM during cold start."
   type        = string
-  default     = "1Gi"
+  default     = "2Gi"
 }

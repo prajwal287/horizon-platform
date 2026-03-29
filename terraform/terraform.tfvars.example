@@ -1,9 +1,9 @@
 # Copy this file to terraform.tfvars to override defaults (optional).
 # From project root: cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 
-# GCP project: Horizon-platform (project_id: horizon-platform-488122)
-project_id   = "horizon-platform-488122"
-project_name = "Horizon-platform"
+# Required — your GCP project (copy this file to terraform.tfvars; keep tfvars out of git)
+project_id   = "YOUR_GCP_PROJECT_ID"
+project_name = "My data lakehouse"
 
 # Optional: override other defaults
 # region     = "us-central1"

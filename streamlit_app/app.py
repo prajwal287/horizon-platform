@@ -50,14 +50,26 @@ from streamlit_app.bq_helpers import (
     qualifying_raw_table,
     resolve_jobs_relation,
     run_query,
+    sort_source_ids_huggingface_first,
 )
 
 st.set_page_config(
-    page_title="Horizon — Job Postings",
-    page_icon="📊",
+    page_title="Horizon — Job Explorer",
+    page_icon="💼",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+_RAW_TABLE_LABELS = {
+    "raw_huggingface_data_jobs": "Hugging Face — data jobs",
+    "raw_kaggle_data_engineer_2023": "Kaggle — Data Engineer 2023",
+    "raw_kaggle_linkedin_postings": "Kaggle — LinkedIn postings",
+    "raw_kaggle_linkedin_jobs_skills_2024": "Kaggle — LinkedIn jobs & skills 2024",
+}
+
+
+def _raw_table_display_name(table_id: str) -> str:
+    return _RAW_TABLE_LABELS.get(table_id, table_id.replace("raw_", "").replace("_", " ").title())
 
 
 @st.cache_resource
@@ -66,22 +78,17 @@ def _client(project: str) -> bigquery.Client:
 
 
 def main() -> None:
-    st.title("Horizon job lakehouse")
-    st.caption("Explore data-domain job postings loaded from Hugging Face & Kaggle (BigQuery).")
-
     project = get_project_id()
     dataset = get_dataset_id()
 
-    with st.sidebar:
-        st.header("Connection")
-        if not project:
-            st.error("Set **GOOGLE_CLOUD_PROJECT** (or **GCP_PROJECT**) in `.env` or your environment.")
-            st.stop()
-        st.text_input("GCP project", value=project, disabled=True)
-        st.text_input("BigQuery dataset", value=dataset, disabled=True)
-        st.markdown(
-            "Uses **Application Default Credentials** (same as `gcloud auth application-default login`)."
+    if not project:
+        st.error(
+            "This app needs your GCP project ID. Add **GOOGLE_CLOUD_PROJECT** (or **GCP_PROJECT**) "
+            "to a `.env` file in the repo root, or set it before running Streamlit. "
+            "BigQuery access uses **Application Default Credentials** "
+            "(run `gcloud auth application-default login`)."
         )
+        st.stop()
 
     client = _client(project)
 
@@ -91,24 +98,12 @@ def main() -> None:
         st.error(str(e))
         st.stop()
 
-    with st.sidebar:
-        st.header("Data source")
-        raw_list = list_raw_tables(client, project, dataset)
-        if mode == "master_jobs":
-            st.success("Using unified view **`master_jobs`**")
-            jobs_fqn = fqn
-            source_options: list[str] | None = None
-        elif mode == "raw_single":
-            st.warning("No `master_jobs` view — using **`%s`**" % raw_list[0])
-            jobs_fqn = fqn
-            source_options = None
-        else:
-            st.warning("`master_jobs` not found — pick a **raw_** table to explore.")
-            pick = st.selectbox("Raw table", raw_list, index=0)
-            jobs_fqn = qualifying_raw_table(project, dataset, pick)
-            source_options = None
+    raw_list = list_raw_tables(client, project, dataset)
+    source_options: list[str] | None = None
 
-        if mode == "master_jobs" and raw_list:
+    if mode == "master_jobs":
+        jobs_fqn = fqn
+        if raw_list:
             counts_sql = f"""
             SELECT source_id, COUNT(*) AS n
             FROM {jobs_fqn}
@@ -116,33 +111,76 @@ def main() -> None:
             ORDER BY n DESC
             """
             src_rows = run_query(client, counts_sql)
-            source_options = [r["source_id"] for r in src_rows if r.get("source_id")]
+            source_options = sort_source_ids_huggingface_first(
+                [r["source_id"] for r in src_rows if r.get("source_id")]
+            )
+    elif mode == "raw_single":
+        jobs_fqn = fqn
+    else:
+        jobs_fqn = fqn
 
-        st.divider()
-        st.subheader("Filters")
+    with st.sidebar:
+        if mode == "raw_pick":
+            st.markdown("### Dataset")
+            raw_sorted = sorted(
+                raw_list,
+                key=lambda t: (0 if "huggingface" in t.lower() else 1, t),
+            )
+            labels = [_raw_table_display_name(t) for t in raw_sorted]
+            label_to_id = dict(zip(labels, raw_sorted))
+            choice_lbl = st.selectbox(
+                "Which table to explore",
+                options=labels,
+                index=0,
+                help="Pick one loaded table, or run create_master_table.py to combine everything.",
+            )
+            jobs_fqn = qualifying_raw_table(project, dataset, label_to_id[choice_lbl])
+
+        st.markdown("### Filters")
+        st.caption("Narrow the numbers and tables below. Defaults include all sources.")
+
         if source_options:
             sources_filter = st.multiselect(
-                "Source",
+                "Show data from",
                 options=source_options,
                 default=source_options,
+                help="Job postings come from several providers; Hugging Face is listed first.",
             )
         else:
             sources_filter = []
 
-        use_dates = st.checkbox("Filter by posted date", value=False)
+        use_dates = st.checkbox("Limit by posted date", value=False)
         d_start = d_end = None
         if use_dates:
             col_a, col_b = st.columns(2)
             with col_a:
-                d_start = st.date_input("From", value=None)
+                d_start = st.date_input("From", value=None, key="d0")
             with col_b:
-                d_end = st.date_input("To", value=None)
+                d_end = st.date_input("To", value=None, key="d1")
 
-        search = st.text_input("Search title / description", placeholder="e.g. data engineer, spark", value="")
+        search = st.text_input(
+            "Search in title or description",
+            placeholder="Examples: analyst, Python, remote",
+            value="",
+        )
+        limit = st.slider(
+            "How many rows in Browse tab",
+            min_value=50,
+            max_value=2000,
+            value=200,
+            step=50,
+        )
 
-        limit = st.slider("Rows to load", min_value=50, max_value=2000, value=200, step=50)
+    # ---------- Main: intro + metrics ----------
+    st.title("Job posting explorer")
+    st.markdown(
+        """
+**What this does:** browse unified tech job postings collected from **Hugging Face** and **Kaggle**
+in one place. Use **Filters** on the left, then open the tabs to compare **sources**, see **volume over time**,
+and **browse** individual jobs (with links and CSV export).
+        """.strip()
+    )
 
-    # --- Overview metrics
     params: list = []
     where_parts = ["1=1"]
     if sources_filter:
@@ -167,15 +205,14 @@ def main() -> None:
     count_sql = f"SELECT COUNT(*) AS c FROM {jobs_fqn} WHERE {where_sql}"
     total = run_query(client, count_sql, params)[0]["c"]
 
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Rows (filtered)", f"{total:,}")
-    c2.metric("Dataset", dataset)
-    if mode == "master_jobs":
-        n_src = len(source_options or [])
-        c3.metric("Sources in view", n_src)
+    if source_options is not None:
+        sources_metric_val = str(len(source_options))
+    elif mode in ("raw_single", "raw_pick"):
+        sources_metric_val = "1"
     else:
-        c3.metric("Mode", "single raw table")
+        sources_metric_val = "—"
 
+    complete_n: int | None = None
     if mode == "master_jobs":
         try:
             meta = client.get_table(f"{project}.{dataset}.master_jobs")
@@ -186,18 +223,33 @@ def main() -> None:
                 FROM {jobs_fqn}
                 WHERE {where_sql}
                 """
-                complete_n = run_query(client, comp_sql, params)[0]["complete_rows"]
-                c4.metric("Complete rows (filtered)", f"{int(complete_n or 0):,}")
-            else:
-                c4.metric("View", "master_jobs")
+                complete_n = int(run_query(client, comp_sql, params)[0]["complete_rows"] or 0)
         except Exception:
-            c4.metric("View", "master_jobs")
+            complete_n = None
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Postings (with filters)", f"{int(total):,}")
+    m2.metric("Sources in view", sources_metric_val)
+    m3.metric(
+        "Dataset",
+        "All combined" if mode == "master_jobs" else "One table",
+        help="Combined view lists Hugging Face first when you compare sources.",
+    )
+    if complete_n is not None:
+        m4.metric("Quality: complete rows", f"{complete_n:,}", help="Rows with title and description or skills.")
     else:
-        c4.metric("View", "raw table")
+        m4.metric("Tip", "Use tabs →", help="Compare sources, trends, then browse jobs.")
 
-    tab1, tab2, tab3 = st.tabs(["By source", "Over time", "Browse jobs"])
+    tab_sources, tab_time, tab_browse = st.tabs(
+        [
+            "1 — Compare sources",
+            "2 — Volume over time",
+            "3 — Browse & export",
+        ]
+    )
 
-    with tab1:
+    with tab_sources:
+        st.markdown("**Postings per data source.** Hugging Face is shown first in the list and chart when present.")
         sql_src = f"""
         SELECT source_id, COUNT(*) AS job_count
         FROM {jobs_fqn}
@@ -207,13 +259,17 @@ def main() -> None:
         """
         rows = run_query(client, sql_src, params)
         if rows:
-            df = pd.DataFrame(rows).set_index("source_id")
-            st.bar_chart(df)
-            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+            order = sort_source_ids_huggingface_first([r["source_id"] for r in rows if r.get("source_id")])
+            rank = {sid: i for i, sid in enumerate(order)}
+            rows_sorted = sorted(rows, key=lambda r: rank.get(r["source_id"], 999))
+            df = pd.DataFrame(rows_sorted)
+            st.bar_chart(df.set_index("source_id")[["job_count"]])
+            st.dataframe(df, use_container_width=True, hide_index=True)
         else:
-            st.info("No rows for current filters.")
+            st.info("No rows match your filters. Loosen filters in the sidebar.")
 
-    with tab2:
+    with tab_time:
+        st.markdown("**Monthly posting counts** (all selected sources together). Dates must exist on the row.")
         sql_time = f"""
         SELECT DATE_TRUNC(posted_date, MONTH) AS month, COUNT(*) AS job_count
         FROM {jobs_fqn}
@@ -226,18 +282,16 @@ def main() -> None:
         if trows:
             tdf = pd.DataFrame(trows)
             tdf["month"] = pd.to_datetime(tdf["month"])
-            tdf = tdf.set_index("month")
-            st.line_chart(tdf)
-            st.dataframe(
-                pd.DataFrame(trows),
-                use_container_width=True,
-                hide_index=True,
-            )
+            st.line_chart(tdf.set_index("month")[["job_count"]])
+            st.dataframe(tdf, use_container_width=True, hide_index=True)
         else:
-            st.info("No dated rows for current filters (or posted_date is null).")
+            st.info("No dated rows for these filters, or `posted_date` is empty.")
 
-    with tab3:
-        st.caption("Tip: open a row’s job URL in a new tab; descriptions are truncated in the grid.")
+    with tab_browse:
+        st.markdown(
+            "**Job list** — Hugging Face postings appear **first**, then others by date. "
+            "Open **job_url** in a new tab for the full posting."
+        )
         list_sql = f"""
         SELECT
           job_title,
@@ -249,32 +303,34 @@ def main() -> None:
           SUBSTR(COALESCE(job_description, ''), 1, 400) AS description_preview
         FROM {jobs_fqn}
         WHERE {where_sql}
-        ORDER BY posted_date DESC NULLS LAST, job_title ASC NULLS LAST
+        ORDER BY
+          CASE WHEN LOWER(COALESCE(source_id, '')) LIKE '%huggingface%' THEN 0 ELSE 1 END,
+          posted_date DESC NULLS LAST,
+          job_title ASC NULLS LAST
         LIMIT @lim
         """
         lp = list(params) + [bigquery.ScalarQueryParameter("lim", "INT64", int(limit))]
         job_rows = run_query(client, list_sql, lp)
         if not job_rows:
-            st.info("No rows for current filters.")
+            st.info("No rows match your filters.")
         else:
             df_jobs = pd.DataFrame(job_rows)
             st.dataframe(df_jobs, use_container_width=True, hide_index=True)
             csv = df_jobs.to_csv(index=False).encode("utf-8")
             st.download_button(
-                "Download CSV (current page)",
+                "Download this table as CSV",
                 data=csv,
                 file_name="horizon_jobs_export.csv",
                 mime="text/csv",
             )
 
-    with st.expander("About this app"):
+    with st.expander("For developers / refresh pipeline"):
         st.markdown(
             """
-- **Data**: `master_jobs` (union of `raw_*` tables) if you ran `scripts/create_master_table.py`;
-  otherwise one selected **`raw_*`** table.
-- **Refresh data**: run `run_ingestion.py` → `scripts/load_gcs_to_bigquery.py` → optional `create_master_table.py`.
-- **Credentials**: same ADC as other Horizon scripts; no API keys in the UI.
-            """
+- **Data location:** BigQuery — a combined **`master_jobs`** view is recommended; otherwise a single **`raw_*`** table.
+- **Reload pipeline:** ingest → **`scripts/load_gcs_to_bigquery.py`** → optional **`scripts/create_master_table.py`**.
+- **Credentials:** The server or your laptop supplies GCP access (e.g. Cloud Run service account or `gcloud auth application-default login`). This screen does **not** show project IDs or account names.
+            """.strip()
         )
 
 

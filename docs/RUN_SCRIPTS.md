@@ -31,7 +31,7 @@ Use this when you have **no data** in your GCS bucket or BigQuery yet and want t
 ```bash
 # 1. Authenticate to GCP
 gcloud auth login
-gcloud config set project horizon-platform-488122
+gcloud config set project YOUR_GCP_PROJECT_ID
 gcloud auth application-default login
 ```
 
@@ -60,8 +60,8 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
 # Required for Kaggle sources (all 3 Kaggle pipelines need this)
-export KAGGLE_USERNAME=prajwalcn007
-export KAGGLE_KEY=KGAT_64b8db622b10f7cd519d5bc5aeec16ee
+export KAGGLE_USERNAME=your_kaggle_username
+export KAGGLE_KEY=your_kaggle_api_token
 
 ```
 

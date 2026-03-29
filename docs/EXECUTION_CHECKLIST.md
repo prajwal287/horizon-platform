@@ -251,7 +251,7 @@ See **[PHASE8_PRODUCTION.md](PHASE8_PRODUCTION.md)** for runbooks (quality scrip
 | **Scheduling signal** | `terraform/phase8.tf` — optional Scheduler → Pub/Sub | Set `enable_pipeline_scheduler`; add subscriber to run pipeline |
 | **Secrets** | Secret Manager secret + IAM for lakehouse SA | Add secret versions via `gcloud`; no keys in git |
 | **dbt** | `dbt/` medallion + `dbt test` in CI parse job | `dbt run` after load |
-| **Agentic** | `agents/` + `scripts/run_agentic_insights.py` | Gemini + whitelisted BQ tools only |
+| **BQ helpers** | `agents/bq_tools.py` | Fixed queries for `data_quality_checks.py` / tests (`pytest`) |
 
 ---
 

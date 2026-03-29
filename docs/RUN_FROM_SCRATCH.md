@@ -76,7 +76,7 @@ Main variables:
 
 | Variable | Purpose | Default (in variables.tf) |
 |----------|---------|----------------------------|
-| `project_id` | GCP project where resources are created | e.g. `horizon-platform-488122` |
+| `project_id` | GCP project where resources are created | e.g. `my-company-lakehouse-prod` |
 | `project_name` | Display name used in labels | e.g. `Horizon-platform` |
 | `region` | Region for bucket and dataset | `us-central1` |
 | `gcs_bucket_name` | Suffix for bucket name (full name = `{project_id}-{gcs_bucket_name}`) | `job-lakehouse-raw` |

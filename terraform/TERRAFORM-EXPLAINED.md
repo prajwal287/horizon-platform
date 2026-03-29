@@ -58,9 +58,8 @@ Our Terraform setup has three main code files plus optional variable files.
 
 ```hcl
 variable "project_id" {
-  description = "GCP Project ID"
+  description = "GCP Project ID (set in terraform.tfvars)"
   type        = string
-  default     = "horizon-platform-488122"
 }
 
 variable "region" {
@@ -70,7 +69,7 @@ variable "region" {
 }
 ```
 
-- `project_id` is used everywhere we need to say “which GCP project.” Default: your project.  
+- `project_id` is used everywhere we need to say “which GCP project.” Set it in **`terraform.tfvars`** (not committed).  
 - `region` is where we create the bucket, dataset, etc. Default: `us-central1`.
 
 You can override these in `terraform.tfvars` or with `-var "project_id=other-project"` without editing `variables.tf`.
@@ -111,10 +110,10 @@ Each **`resource "TYPE" "NAME" { ... }`** block is one (or a set of) real thing(
 
 | Resource in our code | What it creates in GCP |
 |----------------------|-------------------------|
-| `google_storage_bucket.raw` | A GCS bucket (e.g. `horizon-platform-488122-job-lakehouse-raw`) with Standard storage, a lifecycle rule to move objects to Nearline after 90 days, and a label. |
+| `google_storage_bucket.raw` | A GCS bucket named `{project_id}-{gcs_bucket_name}` with Standard storage, a lifecycle rule to move objects to Nearline after 90 days, and a label. |
 | `google_bigquery_dataset.job_market_analysis` | A BigQuery dataset named `job_market_analysis` in your project and region. |
 | `google_pubsub_topic.job_stream_input` | A Pub/Sub topic named `job-stream-input` for real-time ingestion. |
-| `google_service_account.lakehouse` | A service account (e.g. `lakehouse-sa@horizon-platform-488122.iam.gserviceaccount.com`) for pipelines/jobs. |
+| `google_service_account.lakehouse` | A service account (e.g. `lakehouse-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com`) for pipelines/jobs. |
 | `google_storage_bucket_iam_member.lakehouse_storage_admin` | Gives that service account “Storage Object Admin” on the raw bucket. |
 | `google_project_iam_member.lakehouse_bigquery_admin` | Gives that service account “BigQuery Admin” on the project. |
 | `google_pubsub_topic_iam_member.lakehouse_pubsub_publisher` | Gives that service account “Pub/Sub Publisher” on the topic. |
@@ -175,10 +174,10 @@ output "service_account_email" {
 
 ### 4. `terraform.tfvars` (optional) and `terraform.tfvars.example`
 
-- **`terraform.tfvars`** – Where you set variable values for your environment (e.g. `project_id = "horizon-platform-488122"`). Terraform loads this automatically.  
-- **`terraform.tfvars.example`** – A template showing which variables exist and example values; you copy it to `terraform.tfvars` and edit.
+- **`terraform.tfvars`** – Where you set variable values for your environment (e.g. `project_id = "my-real-project-id"`). Terraform loads this automatically. **Do not commit** real `terraform.tfvars` to git.  
+- **`terraform.tfvars.example`** – A template with placeholders; copy to `terraform.tfvars` and edit.
 
-We set defaults in `variables.tf`, so you can run without `terraform.tfvars` if the defaults (e.g. your project ID) are correct.
+**`project_id` has no default** — you must set it in `terraform.tfvars` (or pass `-var`) before `plan` / `apply`.
 
 ---
 
@@ -189,7 +188,7 @@ Here’s what we did, in order, and what each step was for.
 ### Step 1: Install and log in (gcloud + Terraform)
 
 - **Installed:** `gcloud` (Google Cloud CLI) and `terraform`.  
-- **Ran:** `gcloud auth login` and `gcloud config set project horizon-platform-488122`.
+- **Ran:** `gcloud auth login` and `gcloud config set project YOUR_GCP_PROJECT_ID`.
 
 **Why:** Terraform doesn’t log you into GCP by itself. It uses your **Application Default Credentials**. So we also ran:
 
@@ -216,8 +215,8 @@ We enabled:
 
 We created/edited `terraform.tfvars` with:
 
-- `project_id   = "horizon-platform-488122"`  
-- `project_name = "Horizon-platform"`  
+- `project_id   = "YOUR_GCP_PROJECT_ID"`  
+- `project_name = "My data lakehouse"`  
 - (optional) `region = "us-central1"`
 
 **Why:** So Terraform knows which project and display name to use. Our `variables.tf` already has these as defaults, so this step was to align with your real project and fix the label value (we later used `lower(project_name)` so GCP accepts the label).

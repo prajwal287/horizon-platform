@@ -6,15 +6,18 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements-streamlit.txt .
+RUN pip install --no-cache-dir -r requirements-streamlit.txt
 
 COPY streamlit_app/ ./streamlit_app/
 
-RUN chmod +x streamlit_app/entrypoint_cloud_run.sh
+# CRLF in shell scripts breaks kernel exec (shebang becomes /bin/sh\r → "no such file").
+RUN sed -i 's/\r$//' streamlit_app/entrypoint_cloud_run.sh \
+  && chmod +x streamlit_app/entrypoint_cloud_run.sh
 
 ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 
 EXPOSE 8080
 
-ENTRYPOINT ["./streamlit_app/entrypoint_cloud_run.sh"]
+# Invoke via sh so we do not rely on shebang parsing by the kernel (CRLF-safe with sed above).
+ENTRYPOINT ["/bin/sh", "/app/streamlit_app/entrypoint_cloud_run.sh"]

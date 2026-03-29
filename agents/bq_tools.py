@@ -22,7 +22,12 @@ def _client() -> bigquery.Client:
 
 
 def _gold_dataset() -> str:
-    return os.environ.get("DBT_GOLD_DATASET", "dbt_gold").strip() or "dbt_gold"
+    """dbt-bigQuery custom schema default: {profile_dataset}_dbt_gold (override with DBT_GOLD_DATASET)."""
+    env = os.environ.get("DBT_GOLD_DATASET", "").strip()
+    if env:
+        return env
+    base = _raw_dataset()
+    return f"{base}_dbt_gold"
 
 
 def _raw_dataset() -> str:

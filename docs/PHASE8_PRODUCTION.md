@@ -1,6 +1,6 @@
 # Phase 8 — Production hardening & agentic layer
 
-This document ties together **CI**, **tests**, **data quality checks**, **Terraform (secrets + scheduler signal)**, and the **Gemini + whitelisted BigQuery tools** agent.
+This document ties together **CI**, **tests**, **data quality checks**, and **Terraform (secrets + scheduler signal)**. Whitelisted BigQuery helpers live in `agents/bq_tools.py` (no LLM in this path).
 
 ---
 
@@ -13,7 +13,7 @@ This document ties together **CI**, **tests**, **data quality checks**, **Terraf
 | **Data quality** | `scripts/data_quality_checks.py` — raw table counts + `last_ingested`; `--strict` |
 | **Secrets (GCP)** | `terraform/phase8.tf` — Secret Manager secret `horizon-pipeline-secrets`, lakehouse SA accessor |
 | **Scheduling signal** | Optional `enable_pipeline_scheduler` — Cloud Scheduler → Pub/Sub topic (you add subscriber) |
-| **Agentic use case** | `agents/bq_tools.py`, `agents/agentic_runner.py`, `scripts/run_agentic_insights.py` |
+| **BQ helpers (fixed queries)** | `agents/bq_tools.py` — used by `data_quality_checks.py` and tests |
 
 ---
 
@@ -67,33 +67,15 @@ Apply Terraform. The job **publishes** to your existing Pub/Sub topic `job-strea
 
 ---
 
-## 6. Agentic analytics (safe pattern)
-
-The LLM **never** emits raw SQL. It returns JSON choosing one of **`source_row_counts`**, **`top_skills`**, **`posting_volume`**, **`raw_table_health`**. Python executes fixed queries in `agents/bq_tools.py`.
-
-```bash
-export GOOGLE_CLOUD_PROJECT=...
-export GOOGLE_API_KEY=...    # Gemini (AI Studio)
-export DBT_GOLD_DATASET=dbt_gold   # after dbt run
-gcloud auth application-default login
-
-python scripts/run_agentic_insights.py "Which source has the most jobs in the gold mart?"
-python scripts/run_agentic_insights.py --raw-only
-```
-
-**Extend:** add functions in `bq_tools.py`, register in `TOOL_REGISTRY`, document in `TOOL_DESCRIPTIONS`, update the prompt in `agentic_runner.py`.
-
----
-
-## 7. Suggested “production” run order
+## 6. Suggested “production” run order
 
 1. Ingest + load (orchestrated by your scheduler/subscriber).  
 2. `dbt run && dbt test`  
 3. `python scripts/data_quality_checks.py --strict --max-age-hours 72`  
-4. (Optional) agent or downstream BI on `dbt_gold.mart_jobs_curated`.
+4. (Optional) downstream BI on gold marts (e.g. `mart_jobs_curated`).
 
 ---
 
-## 8. Final outcome (project vision)
+## 7. Final outcome (project vision)
 
-**Horizon** becomes a **repeatable lakehouse**: landed **raw** data, **dbt** silver/gold, **automated checks**, **secrets in GCP**, and an **agent** that answers questions using **trusted queries**—a base for **agentic** products (chat, reports, alerts) without giving the model arbitrary SQL.
+**Horizon** becomes a **repeatable lakehouse**: landed **raw** data, **dbt** silver/gold, **automated checks**, and **secrets in GCP**—with **whitelisted BigQuery helpers** in `agents/bq_tools.py` for scripts and quality checks (no arbitrary SQL from callers).

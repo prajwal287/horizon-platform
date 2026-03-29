@@ -10,6 +10,8 @@ The repo includes **`terraform/streamlit.tf`**: Artifact Registry (Docker), dedi
 
 1. **Image must exist** in Artifact Registry before `apply` can succeed (Cloud Run validates the image). From **repo root**, with `REGION` and `PROJECT_ID` matching `terraform.tfvars`:
 
+   **Managed Cloud Run expects `linux/amd64`.** On Apple Silicon, a plain `docker build` often produces **arm64** or an **OCI image index** that Cloud Run rejects (errors mentioning `oci.image.index` or `must support amd64/linux`). Use **buildx** with `amd64` and **disable attestations** so the registry gets a single usable manifest:
+
    ```bash
    export REGION=us-central1
    export PROJECT_ID=your-project-id
@@ -17,11 +19,18 @@ The repo includes **`terraform/streamlit.tf`**: Artifact Registry (Docker), dedi
 
    gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
 
-   docker build -f Dockerfile.streamlit -t "${IMAGE}" .
-   docker push "${IMAGE}"
+   docker buildx build \
+     --platform linux/amd64 \
+     --provenance=false \
+     --sbom=false \
+     -f Dockerfile.streamlit \
+     -t "${IMAGE}" \
+     --push .
    ```
 
    (Default repo/image names match `streamlit_artifact_registry_repo` = `horizon-streamlit` and `streamlit_image_name` = `dashboard`.)
+
+   If you cannot use buildx, try: `docker build --platform linux/amd64 ...` then `docker push` on the same machine (still amd64; omit provenance only if your Docker version supports it on `docker build`).
 
 2. **Enable** in `terraform/terraform.tfvars`:
 
@@ -41,7 +50,7 @@ The repo includes **`terraform/streamlit.tf`**: Artifact Registry (Docker), dedi
 
 **Flags:** `streamlit_allow_unauthenticated` (default `true`) and `streamlit_ingress_all` (default `true`). For private access, set `streamlit_allow_unauthenticated = false`, `streamlit_ingress_all` per your networking needs, and grant **`roles/run.invoker`** to users or groups.
 
-**If `apply` fails** on Cloud Run with an image error, confirm `docker push` succeeded and the URI matches `terraform plan` (see variable defaults or set `streamlit_container_image`).
+**If `apply` fails** on Cloud Run with an image error, confirm `docker push` succeeded, the URI matches `terraform plan`, and the image is **`linux/amd64`** with a manifest Cloud Run accepts (rebuild with the `buildx` command above if you see `oci.image.index` / `amd64/linux`).
 
 ---
 

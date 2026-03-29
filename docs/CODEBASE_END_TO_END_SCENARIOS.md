@@ -64,10 +64,9 @@ This document explains **what the Horizon platform does**, **how the pieces conn
 | **`scripts/load_gcs_to_bigquery.py`** | Step 2 — Parquet → `raw_*`. |
 | **`scripts/create_master_table.py`** | Union `raw_*` → `master_jobs` view/table. |
 | **`scripts/data_quality_checks.py`** | Post-load row counts / freshness on raw tables. |
-| **`scripts/run_agentic_insights.py`** | Gemini + safe BQ tools (agentic). |
 | **`scripts/run_phase6_kaggle_de_skills.sh`** | Kaggle DE (+ optional HF) taxonomy skills refresh. |
 | **`dbt/`** | SQL models: bronze views, silver union/dedupe, gold marts. |
-| **`agents/`** | Whitelisted BigQuery tools + Gemini planner/summarizer. |
+| **`agents/`** | Whitelisted BigQuery helpers (`bq_tools.py`) for scripts and tests. |
 | **`terraform/`** | GCP resources + Phase 8 Secret Manager / optional Scheduler. |
 | **`.github/workflows/ci.yml`** | Ruff, pytest, `dbt parse`. |
 | **`tests/`** | Pytest contract tests. |
@@ -193,21 +192,7 @@ python3 scripts/data_quality_checks.py --strict --max-age-hours 72
 
 ---
 
-### Scenario F — Agentic question (“talk to the data” safely)
-
-**Goal:** Natural language without arbitrary SQL from the model.
-
-**Prerequisite:** ADC for BigQuery, `GOOGLE_API_KEY` for Gemini, dbt gold built for mart tools.
-
-```bash
-python3 scripts/run_agentic_insights.py "What are the top skills in our gold mart?"
-```
-
-The model picks one of: `source_row_counts`, `top_skills`, `posting_volume`, `raw_table_health`. Only those functions run fixed SQL.
-
----
-
-### Scenario G — Production hardening (Phase 8)
+### Scenario F — Production hardening (Phase 8)
 
 **Goal:** Secrets + schedule signal + CI.
 

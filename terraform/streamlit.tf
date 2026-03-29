@@ -77,6 +77,16 @@ resource "google_cloud_run_v2_service" "streamlit" {
       ports {
         container_port = 8080
       }
+      # Streamlit can take longer than default startup probing; avoid false "port not listening" failures.
+      startup_probe {
+        initial_delay_seconds = 10
+        timeout_seconds       = 3
+        period_seconds        = 5
+        failure_threshold     = 30
+        tcp_socket {
+          port = 8080
+        }
+      }
       resources {
         limits = {
           cpu    = var.streamlit_cpu

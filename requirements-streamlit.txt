@@ -1,0 +1,6 @@
+# Minimal deps for Dockerfile.streamlit / Cloud Run (explorer UI only).
+# Keeps image small and speeds cold start vs full requirements.txt.
+streamlit>=1.28.0
+google-cloud-bigquery>=3.14.0
+pandas>=2.0.0
+python-dotenv>=1.0.0

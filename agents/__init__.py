@@ -1,1 +1,1 @@
-"""Agentic layer: whitelisted BigQuery tools + Gemini orchestration (Phase 8)."""
+"""Whitelisted BigQuery helper queries for scripts and tests (Phase 8)."""

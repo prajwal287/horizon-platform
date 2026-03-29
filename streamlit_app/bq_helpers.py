@@ -10,6 +10,19 @@ from google.cloud.exceptions import NotFound
 _RAW_PATTERN = re.compile(r"^raw_[a-z0-9_]+$")
 
 
+def sort_source_ids_huggingface_first(source_ids: list[str]) -> list[str]:
+    """List unique source_ids with Hugging Face sources first, then others A–Z."""
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for s in source_ids:
+        if s and s not in seen:
+            seen.add(s)
+            ordered.append(s)
+    hf = [x for x in ordered if "huggingface" in x.lower()]
+    rest = sorted([x for x in ordered if "huggingface" not in x.lower()])
+    return sorted(hf) + rest
+
+
 def get_project_id() -> str:
     import os
 

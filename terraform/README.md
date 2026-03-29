@@ -127,7 +127,7 @@ project_id = "my-lakehouse-123"
 region     = "us-central1"
 ```
 
-Use your real **Project ID** from the GCP Console. Do not commit this file if it contains sensitive data; add `terraform.tfvars` to `.gitignore` if needed.
+Use your real **Project ID** from the GCP Console. This repository **already ignores** `terraform/terraform.tfvars` in `.gitignore` — keep real values only in that local file. Start from **`terraform.tfvars.example`**; **`project_id` is required** (no default in `variables.tf`).
 
 ---
 
