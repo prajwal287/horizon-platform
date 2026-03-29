@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 # Streamlit dashboard on Cloud Run + Artifact Registry (optional)
 # Set enable_streamlit_cloud_run = true in terraform.tfvars after you can push an image.
-# Image must exist before apply succeeds: see output streamlit_image_uri and docs/STREAMLIT_HOSTING_GCP.md
+# Image must exist before apply succeeds: see output streamlit_image_uri and docs/GUIDE_GCP_HOSTING.md
 # -----------------------------------------------------------------------------
 
 locals {

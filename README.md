@@ -1,6 +1,8 @@
 # Horizon
 
-The Data Architecture & Agentic AI Intelligence Platform — data-domain job postings ingestion (Hugging Face, Kaggle) via **dlt → GCS (Parquet) → BigQuery**. Work primarily in BigQuery with optional Spark jobs.
+Job-posting data pipeline and dashboard — ingest Hugging Face and Kaggle sources via **dlt → GCS (Parquet) → BigQuery**, with **dbt** medallion marts and a **Streamlit** explorer (categorical + time-series charts). Work primarily in BigQuery; Spark is optional.
+
+**Problem it solves:** postings live in separate public datasets; this repo **unifies** them in a **GCP lake + warehouse**, adds **curated marts** (partitioned/clustered where it matters), and gives analysts a **small dashboard** without ad-hoc notebooks. **Peer-review / rubric mapping:** [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md).
 
 ## Architecture: dlt → GCS → BigQuery
 
@@ -11,9 +13,13 @@ The Data Architecture & Agentic AI Intelligence Platform — data-domain job pos
    `scripts/load_gcs_to_bigquery.py` loads those Parquet files into BigQuery tables in dataset `job_market_analysis` (e.g. `raw_huggingface_data_jobs`, `raw_kaggle_data_engineer_2023`).
 
 3. **Analytics**  
-   Run SQL and dbt in BigQuery; Silver/Gold tables live in the same dataset. Spark can read/write BigQuery or GCS as needed.
+   Run SQL in BigQuery on `raw_*` / `master_jobs`; **dbt** builds bronze, silver, and gold in datasets with suffixes like `_dbt_bronze`, `_dbt_silver`, `_dbt_gold`. Spark can read/write BigQuery or GCS as needed.
 
-## Running the pipeline (two steps)
+## Running the pipeline
+
+**One-shot batch sequence** (ingest → load → `master_jobs` → dbt): `./scripts/run_batch_pipeline.sh` (see [docs/GUIDE_END_TO_END.md](docs/GUIDE_END_TO_END.md); set `SKIP_DBT=1` if you have not installed `dbt-bigquery` yet).
+
+**Manual two-step core** (lake + raw tables only):
 
 1. **Rebuild the image** (from project root):
    ```bash
@@ -68,30 +74,21 @@ For other Kaggle sources: `kaggle_linkedin`, `kaggle_linkedin_skills`.
 
 - **terraform/** — GCP IaC (GCS, BigQuery, Pub/Sub, service account).
 - **ingestion/** — dlt pipelines (step 1: write Parquet to GCS). Shared runner and schema in `ingestion/pipelines/common.py` and `ingestion/schema.py`.
-- **scripts/** — `load_gcs_to_bigquery.py` (step 2: GCS → BigQuery), `create_master_table.py` (master_jobs view/table), `compare_skills_extraction.py` (eval), `inspect_kaggle_csv.py` (dev helper).
+- **scripts/** — `run_batch_pipeline.sh` (orchestrated batch: lake → BQ → master → dbt), `load_gcs_to_bigquery.py` (GCS → BigQuery), `create_master_table.py` (`master_jobs`), `data_quality_checks.py`, `compare_skills_extraction.py` (eval), `inspect_kaggle_csv.py` (dev helper).
 - **run_ingestion.py** — CLI for step 1 (dlt → GCS).
 - **streamlit_app/** — Browser UI to explore `master_jobs` / `raw_*` in BigQuery (`streamlit run streamlit_app/app.py` or `docker compose up streamlit` → http://localhost:8501).
 
 ## Streamlit dashboard (optional)
 
-After raw tables (or `master_jobs`) exist in BigQuery: **`streamlit run streamlit_app/app.py`** from repo root (same `.env` and ADC as ingestion). Or **`docker compose up streamlit`** and open port **8501** (mounts gcloud ADC like the `app` service). **Step-by-step testing:** [docs/STREAMLIT_TESTING.md](docs/STREAMLIT_TESTING.md). **Deploy on GCP (Cloud Run):** [docs/STREAMLIT_HOSTING_GCP.md](docs/STREAMLIT_HOSTING_GCP.md).
+After raw tables (or `master_jobs`) exist in BigQuery: **`streamlit run streamlit_app/app.py`** from repo root (same `.env` and ADC as ingestion). Or **`docker compose up streamlit`** and open port **8501** (mounts gcloud ADC like the `app` service). **Deploy on GCP (Cloud Run):** [docs/GUIDE_GCP_HOSTING.md](docs/GUIDE_GCP_HOSTING.md).
 
 ## Documentation
 
-- **[CODEBASE_END_TO_END_SCENARIOS.md](docs/CODEBASE_END_TO_END_SCENARIOS.md)** — **Architecture & scenarios:** how the whole codebase fits together, with examples and user journeys.
-- **[E2E_EXECUTION_ALL_STEPS.md](docs/E2E_EXECUTION_ALL_STEPS.md)** — **Ordered runbook:** every step from prerequisites through dbt, quality checks, optional Phase 8, and the agent (nothing omitted).
-- **[COMPLETE_EXECUTION_GUIDE.md](docs/COMPLETE_EXECUTION_GUIDE.md)** — **Start here (alternate):** full scratch run with narrative and troubleshooting (prereqs → Terraform → `.env` → ingest → BigQuery → master).
-- **[EXECUTION_CHECKLIST.md](docs/EXECUTION_CHECKLIST.md)** — Phase-by-phase checklist and done criteria (shorter reference).
-- **[DLT_LEARNING.md](docs/DLT_LEARNING.md)** — Learn dlt using this repo: concepts, HF vs Kaggle, `replace` + Parquet, exercises.
-- **[RUN_SCRIPTS.md](docs/RUN_SCRIPTS.md)** — How to run: ingestion, load to BigQuery, master table, skills.
-- **[HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md)** — How the code works end-to-end (flow, which file does what).
-- **[RUN_FROM_SCRATCH.md](docs/RUN_FROM_SCRATCH.md)** — First-time setup: Terraform, GCP, then run pipeline.
-- **[STREAMLIT_TESTING.md](docs/STREAMLIT_TESTING.md)** — Prerequisites, local/Docker run, and a manual UI checklist for the Streamlit explorer.
-- **[STREAMLIT_HOSTING_GCP.md](docs/STREAMLIT_HOSTING_GCP.md)** — Host the dashboard on **Cloud Run** (Artifact Registry, IAM, env vars).
-- **[RUN_FROM_INTERMEDIATE.md](docs/RUN_FROM_INTERMEDIATE.md)** — Resume from where you left off (no full re-run).
-- [MASTER_TABLE_SPEC.md](docs/MASTER_TABLE_SPEC.md) — Master table columns, adding skills, clean view.
-- [WHEN_TO_USE_DBT.md](docs/WHEN_TO_USE_DBT.md) — When to introduce dbt for transformations.
-- [DBT_INTEGRATION.md](docs/DBT_INTEGRATION.md) — How to run **dbt** on top of existing `raw_*` tables; starter in **`dbt/`**.
-- [PHASE8_PRODUCTION.md](docs/PHASE8_PRODUCTION.md) — CI, data quality, Secret Manager / scheduler Terraform, whitelisted BQ helpers.
-- [EVALUATE_SKILLS_EXTRACTION.md](docs/EVALUATE_SKILLS_EXTRACTION.md) — Compare taxonomy vs LLM skills.
-- [terraform/README.md](terraform/README.md) — Infrastructure setup.
+All docs live under **[docs/](docs/README.md)**. Main guides:
+
+- **[docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md)** — High-level story, capstone-style rubric mapping, and what each layer does.
+- **[docs/GUIDE_END_TO_END.md](docs/GUIDE_END_TO_END.md)** — Single runbook: Terraform → ingest → BigQuery → optional dbt → Streamlit and quality checks.
+- **[docs/GUIDE_GCP_HOSTING.md](docs/GUIDE_GCP_HOSTING.md)** — Cloud Run, Docker/`amd64`, Artifact Registry, **ingress**, IAM, troubleshooting.
+- **[docs/GUIDE_DLT_DBT.md](docs/GUIDE_DLT_DBT.md)** — Why **dlt** and **dbt** are used here, how they connect, scenario examples.
+
+**Reference:** [docs/MASTER_TABLE_SPEC.md](docs/MASTER_TABLE_SPEC.md) · [docs/EVALUATE_SKILLS_EXTRACTION.md](docs/EVALUATE_SKILLS_EXTRACTION.md) · [terraform/README.md](terraform/README.md)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase 6 (EXECUTION_CHECKLIST): taxonomy skills for Kaggle Data Engineer 2023; optional Hugging Face (see below).
+# Phase 6: taxonomy skills for Kaggle Data Engineer 2023; optional Hugging Face (see docs/GUIDE_END_TO_END.md).
 # Prerequisites: project root .venv activated (or PYTHON set), ADC (gcloud auth application-default login),
 # GCS_BUCKET, GOOGLE_CLOUD_PROJECT, BIGQUERY_DATASET; Kaggle via KAGGLE_USERNAME+KAGGLE_KEY or ~/.kaggle/kaggle.json
 # Optional: PHASE6_INCLUDE_HF=1 also re-ingests Hugging Face (uses job_type_skills + taxonomy when job_skills is null).

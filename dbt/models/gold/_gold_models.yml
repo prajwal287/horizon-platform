@@ -2,7 +2,10 @@ version: 2
 
 models:
   - name: mart_jobs_curated
-    description: Deduped jobs with is_complete and quality bucket; primary mart for BI.
+    description: >
+      Deduped jobs with is_complete and quality bucket; primary mart for BI.
+      Materialized as a BigQuery table partitioned by posted_date (month) and clustered by
+      source_id and content_quality_bucket to align with typical filters (date range, source, quality).
     columns:
       - name: source_id
         tests: [not_null]
@@ -10,7 +13,9 @@ models:
         description: True when title present and (description or at least one skill).
 
   - name: mart_posting_volume
-    description: Monthly volume and complete-posting counts by source.
+    description: >
+      Monthly volume and complete-posting counts by source. Table partitioned on posting_month
+      and clustered by source_id for time-series queries.
 
   - name: mart_skill_demand
     description: Skill string frequency across jobs (silver int_skills_long).

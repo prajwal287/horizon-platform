@@ -261,4 +261,4 @@ Type **yes** when prompted. This removes the bucket, dataset, topic, service acc
 - Use **service_account_email** from `terraform output` when running pipelines (e.g. grant it access to other systems or use Workload Identity).
 - Write data to the **GCS bucket** and **Pub/Sub topic**; query tables in the **BigQuery dataset** `job_market_analysis`.
 - To change region or names, edit `terraform.tfvars` and run `terraform plan` then `terraform apply` again.
-- **Streamlit on Cloud Run (optional):** set `enable_streamlit_cloud_run = true` after pushing the Docker image (see **`docs/STREAMLIT_HOSTING_GCP.md` §0** and **`streamlit.tf`**). Outputs: `streamlit_service_uri`, `streamlit_image_uri`.
+- **Streamlit on Cloud Run (optional):** set `enable_streamlit_cloud_run = true` after pushing the Docker image (see **`docs/GUIDE_GCP_HOSTING.md`** and **`streamlit.tf`**). Outputs: `streamlit_service_uri`, `streamlit_image_uri`.

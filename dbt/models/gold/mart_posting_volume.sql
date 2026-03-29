@@ -1,5 +1,10 @@
 -- Gold: posting counts by source and month (pipeline health / trends).
-{{ config(materialized='view') }}
+-- Partition by month + cluster by source_id for dashboard-style time-series by source.
+{{ config(
+    materialized='table',
+    partition_by={'field': 'posting_month', 'data_type': 'date', 'granularity': 'month'},
+    cluster_by=['source_id'],
+) }}
 
 select
   source_id,

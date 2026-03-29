@@ -20,13 +20,13 @@ dbt test
 
 | Model | Use |
 |-------|-----|
-| `mart_jobs_curated` | Primary job-level table (`is_complete`, quality bucket, deduped) |
-| `mart_posting_volume` | Monthly volume by source |
+| `mart_jobs_curated` | Primary job-level **table**: partitioned by `posted_date` (month), clustered by `source_id`, `content_quality_bucket` |
+| `mart_posting_volume` | Monthly volume by source — **table**: partitioned by `posting_month`, clustered by `source_id` |
 | `mart_skill_demand` | Skill counts |
 | `mart_cross_source_urls` | Same URL across multiple sources |
 
 ## Docs
 
-See **[docs/DBT_INTEGRATION.md](../docs/DBT_INTEGRATION.md)** for the full diagram, logic, and how to extend macros/models.
+See **[docs/GUIDE_DLT_DBT.md](../docs/GUIDE_DLT_DBT.md)** for how ingestion and dbt connect, scenario walkthroughs, and how to extend models.
 
 **Note:** Remove unused tables from `models/sources.yml` if you do not load all five raw sources.
