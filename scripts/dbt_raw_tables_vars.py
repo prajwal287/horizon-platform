@@ -25,32 +25,8 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-# Must match dbt sources / bronze models
-KNOWN_RAW_TABLES: tuple[str, ...] = (
-    "raw_huggingface_data_jobs",
-    "raw_kaggle_data_engineer_2023",
-    "raw_kaggle_linkedin_postings",
-    "raw_kaggle_linkedin_jobs_skills_2024",
-)
-
-
-def _load_dotenv() -> None:
-    env = ROOT / ".env"
-    if not env.is_file():
-        return
-    try:
-        from dotenv import load_dotenv
-
-        load_dotenv(env, override=False)
-    except ImportError:
-        with open(env) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    k, _, v = line.partition("=")
-                    k, v = k.strip(), v.strip().strip("'\"")
-                    if k and v:
-                        os.environ.setdefault(k, v)
+from ingestion.env_bootstrap import load_dotenv_repo  # noqa: E402
+from ingestion.raw_table_names import RAW_TABLE_IDS  # noqa: E402
 
 
 def main() -> int:
@@ -67,7 +43,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    _load_dotenv()
+    load_dotenv_repo()
     project = (os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("GCP_PROJECT") or "").strip()
     dataset = (
         os.environ.get("BIGQUERY_DATASET", "job_market_analysis").strip() or "job_market_analysis"
@@ -87,7 +63,7 @@ def main() -> int:
       AND STARTS_WITH(table_name, 'raw_')
     """
     names = {r["table_name"] for r in client.query(q).result()}
-    present = [t for t in KNOWN_RAW_TABLES if t in names]
+    present = [t for t in RAW_TABLE_IDS if t in names]
 
     payload = {"raw_tables_present": present}
 

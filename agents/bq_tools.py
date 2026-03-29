@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
+from ingestion.raw_table_names import RAW_TABLE_IDS
 
 
 def _project_id() -> str:
@@ -57,11 +58,19 @@ def tool_source_row_counts() -> Dict[str, Any]:
     }
 
 
-def tool_top_skills(limit: int = 15) -> Dict[str, Any]:
+def _coerce_int(value: Any, default: int, lo: int, hi: int) -> int:
+    try:
+        x = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(lo, min(x, hi))
+
+
+def tool_top_skills(limit: Any = 15) -> Dict[str, Any]:
     """Top skills from mart_skill_demand."""
     project = _project_id()
     gold = _gold_dataset()
-    lim = max(1, min(int(limit), 100))
+    lim = _coerce_int(limit, 15, 1, 100)
     sql = f"""
     SELECT skill, job_postings, source_count
     FROM `{project}.{gold}.mart_skill_demand`
@@ -78,11 +87,11 @@ def tool_top_skills(limit: int = 15) -> Dict[str, Any]:
     }
 
 
-def tool_posting_volume(months: int = 6) -> Dict[str, Any]:
+def tool_posting_volume(months: Any = 6) -> Dict[str, Any]:
     """Recent monthly posting volume by source."""
     project = _project_id()
     gold = _gold_dataset()
-    m = max(1, min(int(months), 36))
+    m = _coerce_int(months, 6, 1, 36)
     sql = f"""
     SELECT source_id, posting_month, job_postings, complete_postings
     FROM `{project}.{gold}.mart_posting_volume`
@@ -111,15 +120,9 @@ def tool_raw_table_health() -> Dict[str, Any]:
     """Row counts + max(ingested_at) for core raw tables (no dbt required)."""
     project = _project_id()
     ds = _raw_dataset()
-    tables = [
-        "raw_huggingface_data_jobs",
-        "raw_kaggle_data_engineer_2023",
-        "raw_kaggle_linkedin_postings",
-        "raw_kaggle_linkedin_jobs_skills_2024",
-    ]
     client = _client()
     out: List[Dict[str, Any]] = []
-    for t in tables:
+    for t in RAW_TABLE_IDS:
         fq = f"{project}.{ds}.{t}"
         sql = f"SELECT COUNT(*) AS n, MAX(ingested_at) AS last_ingested FROM `{fq}`"
         try:
@@ -138,35 +141,11 @@ def tool_raw_table_health() -> Dict[str, Any]:
     return {"tool": "raw_table_health", "tables": out}
 
 
-def _call_source_row_counts(**_: Any) -> Dict[str, Any]:
-    return tool_source_row_counts()
-
-
-def _call_top_skills(limit: Any = 15, **_: Any) -> Dict[str, Any]:
-    try:
-        lim = int(limit)
-    except (TypeError, ValueError):
-        lim = 15
-    return tool_top_skills(lim)
-
-
-def _call_posting_volume(months: Any = 6, **_: Any) -> Dict[str, Any]:
-    try:
-        m = int(months)
-    except (TypeError, ValueError):
-        m = 6
-    return tool_posting_volume(m)
-
-
-def _call_raw_table_health(**_: Any) -> Dict[str, Any]:
-    return tool_raw_table_health()
-
-
 TOOL_REGISTRY: Dict[str, Callable[..., Dict[str, Any]]] = {
-    "source_row_counts": _call_source_row_counts,
-    "top_skills": _call_top_skills,
-    "posting_volume": _call_posting_volume,
-    "raw_table_health": _call_raw_table_health,
+    "source_row_counts": lambda **_: tool_source_row_counts(),
+    "top_skills": lambda **kw: tool_top_skills(kw.get("limit", 15)),
+    "posting_volume": lambda **kw: tool_posting_volume(kw.get("months", 6)),
+    "raw_table_health": lambda **_: tool_raw_table_health(),
 }
 
 

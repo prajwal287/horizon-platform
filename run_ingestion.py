@@ -16,30 +16,9 @@ import logging
 import os
 import sys
 
-def _load_env():
-    """Load .env from project root so GCS_BUCKET, GOOGLE_CLOUD_PROJECT, KAGGLE_* are set."""
-    root = os.path.dirname(os.path.abspath(__file__))
-    for candidate in [os.path.join(root, ".env"), os.path.join(os.getcwd(), ".env")]:
-        if not os.path.isfile(candidate):
-            continue
-        try:
-            from dotenv import load_dotenv
-            load_dotenv(candidate, override=True)
-            return
-        except ImportError:
-            pass
-        with open(candidate) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    k, _, v = line.partition("=")
-                    k, v = k.strip(), v.strip().strip("'\"")
-                    if k and v:
-                        os.environ[k] = v
-        return
+from ingestion.env_bootstrap import load_dotenv_repo
 
-
-_load_env()
+load_dotenv_repo(override=True, search_cwd=True)
 
 logging.basicConfig(
     level=logging.INFO,

@@ -21,20 +21,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from ingestion.raw_table_names import RAW_TABLE_IDS
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
-
-# Raw tables we union (in order). Only tables that exist in the dataset are included.
-_RAW_TABLES = [
-    "raw_huggingface_data_jobs",
-    "raw_kaggle_data_engineer_2023",
-    "raw_kaggle_linkedin_postings",
-    "raw_kaggle_linkedin_jobs_skills_2024",
-]
 
 # One branch of the clean union (same SELECT for each table).
 _CLEAN_SELECT = """
@@ -56,14 +50,17 @@ def _existing_raw_tables(client, project: str, dataset_id: str):
     from google.cloud.bigquery import DatasetReference
     dataset_ref = DatasetReference(project, dataset_id)
     found = {t.table_id for t in client.list_tables(dataset_ref)}
-    return [t for t in _RAW_TABLES if t in found]
+    return [t for t in RAW_TABLE_IDS if t in found]
 
 
-def _build_union_sql(project: str, dataset_id: str, table_ids: list, clean: bool) -> str:
+def _union_sql(project: str, dataset_id: str, table_ids: list, clean: bool) -> str:
     """Build union SQL from only the given raw table ids."""
     if not table_ids:
         return ""
-    qual = lambda t: f"`{project}.{dataset_id}.{t}`"
+
+    def qual(tid: str) -> str:
+        return f"`{project}.{dataset_id}.{tid}`"
+
     if clean:
         branches = [
             f"  SELECT\n{_CLEAN_SELECT}\n  FROM {qual(t)}"
@@ -80,11 +77,6 @@ SELECT
 FROM raw_union"""
     else:
         return "\nUNION ALL\n".join(f"SELECT * FROM {qual(t)}" for t in table_ids)
-
-
-def _union_sql(project: str, dataset: str, table_ids: list, clean: bool) -> str:
-    """Build union SQL from the given raw table ids (simple or clean with is_complete)."""
-    return _build_union_sql(project, dataset, table_ids, clean)
 
 
 def main() -> int:
@@ -124,7 +116,7 @@ def main() -> int:
             project, dataset_id,
         )
         return 1
-    missing = [t for t in _RAW_TABLES if t not in existing]
+    missing = [t for t in RAW_TABLE_IDS if t not in existing]
     if missing:
         logger.info("Using %d raw table(s): %s (missing: %s)", len(existing), existing, missing or "none")
 

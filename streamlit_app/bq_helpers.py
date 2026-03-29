@@ -1,6 +1,7 @@
 """BigQuery helpers for the Streamlit app — parameterized whitelist-safe table names."""
 from __future__ import annotations
 
+import os
 import re
 from typing import Any, Optional, Sequence
 
@@ -24,14 +25,10 @@ def sort_source_ids_huggingface_first(source_ids: list[str]) -> list[str]:
 
 
 def get_project_id() -> str:
-    import os
-
     return (os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("GCP_PROJECT") or "").strip()
 
 
 def get_dataset_id() -> str:
-    import os
-
     return (os.environ.get("BIGQUERY_DATASET", "job_market_analysis") or "job_market_analysis").strip()
 
 
@@ -80,6 +77,59 @@ def qualifying_raw_table(project: str, dataset: str, table_id: str) -> str:
     if not _RAW_PATTERN.match(table_id):
         raise ValueError("Invalid table id")
     return f"`{project}.{dataset}.{table_id}`"
+
+
+def parse_qualified_table_id(quoted_fqn: str) -> tuple[str, str, str]:
+    """Parse `project.dataset.table` → three parts."""
+    inner = quoted_fqn.strip().strip("`")
+    parts = inner.split(".")
+    if len(parts) != 3:
+        raise ValueError(f"Expected project.dataset.table, got {quoted_fqn!r}")
+    return parts[0], parts[1], parts[2]
+
+
+def table_has_column(client: bigquery.Client, quoted_fqn: str, column: str) -> bool:
+    """Return True if the table or view has the given column name."""
+    project_id, dataset_id, table_id = parse_qualified_table_id(quoted_fqn)
+    meta = client.get_table(f"{project_id}.{dataset_id}.{table_id}")
+    return any(f.name == column for f in meta.schema)
+
+
+def skills_normalized_array_sql(column: str = "skills") -> str:
+    """
+    BigQuery expression returning ARRAY<STRING> from a raw skills field.
+    Aligns with dbt macro normalize_skills_array (JSON array string or compatible values).
+    """
+    return f"""IFNULL(
+  (
+    SELECT ARRAY_AGG(TRIM(s))
+    FROM UNNEST(
+      IF(
+        JSON_TYPE(
+          SAFE.PARSE_JSON(
+            IF(
+              STARTS_WITH(TRIM(IFNULL(SAFE_CAST({column} AS STRING), '')), '['),
+              TRIM(SAFE_CAST({column} AS STRING)),
+              TO_JSON_STRING({column})
+            )
+          )
+        ) = 'array',
+        JSON_VALUE_ARRAY(
+          SAFE.PARSE_JSON(
+            IF(
+              STARTS_WITH(TRIM(IFNULL(SAFE_CAST({column} AS STRING), '')), '['),
+              TRIM(SAFE_CAST({column} AS STRING)),
+              TO_JSON_STRING({column})
+            )
+          )
+        ),
+        ARRAY<STRING>[]
+      )
+    ) AS s
+    WHERE TRIM(s) IS NOT NULL AND TRIM(s) != ''
+  ),
+  ARRAY<STRING>[]
+)"""
 
 
 def run_query(

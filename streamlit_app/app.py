@@ -16,33 +16,15 @@ _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
+from ingestion.env_bootstrap import load_dotenv_repo  # noqa: E402
 
-def _load_dotenv() -> None:
-    env = _ROOT / ".env"
-    if not env.is_file():
-        return
-    try:
-        from dotenv import load_dotenv
+load_dotenv_repo()
 
-        load_dotenv(env, override=False)
-    except ImportError:
-        with open(env) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    k, _, v = line.partition("=")
-                    k, v = k.strip(), v.strip().strip("'\"")
-                    if k and v and k not in __import__("os").environ:
-                        __import__("os").environ.setdefault(k, v)
+import pandas as pd  # noqa: E402
+import streamlit as st  # noqa: E402
+from google.cloud import bigquery  # noqa: E402
 
-
-_load_dotenv()
-
-import pandas as pd
-import streamlit as st
-from google.cloud import bigquery
-
-from streamlit_app.bq_helpers import (
+from streamlit_app.bq_helpers import (  # noqa: E402
     bq_client,
     get_dataset_id,
     get_project_id,
@@ -50,7 +32,9 @@ from streamlit_app.bq_helpers import (
     qualifying_raw_table,
     resolve_jobs_relation,
     run_query,
+    skills_normalized_array_sql,
     sort_source_ids_huggingface_first,
+    table_has_column,
 )
 
 st.set_page_config(
@@ -99,25 +83,19 @@ def main() -> None:
         st.stop()
 
     raw_list = list_raw_tables(client, project, dataset)
+    jobs_fqn = fqn
     source_options: list[str] | None = None
-
-    if mode == "master_jobs":
-        jobs_fqn = fqn
-        if raw_list:
-            counts_sql = f"""
-            SELECT source_id, COUNT(*) AS n
-            FROM {jobs_fqn}
-            GROUP BY 1
-            ORDER BY n DESC
-            """
-            src_rows = run_query(client, counts_sql)
-            source_options = sort_source_ids_huggingface_first(
-                [r["source_id"] for r in src_rows if r.get("source_id")]
-            )
-    elif mode == "raw_single":
-        jobs_fqn = fqn
-    else:
-        jobs_fqn = fqn
+    if mode == "master_jobs" and raw_list:
+        counts_sql = f"""
+        SELECT source_id, COUNT(*) AS n
+        FROM {jobs_fqn}
+        GROUP BY 1
+        ORDER BY n DESC
+        """
+        src_rows = run_query(client, counts_sql)
+        source_options = sort_source_ids_huggingface_first(
+            [r["source_id"] for r in src_rows if r.get("source_id")]
+        )
 
     with st.sidebar:
         if mode == "raw_pick":
@@ -176,8 +154,8 @@ def main() -> None:
     st.markdown(
         """
 **What this does:** browse unified tech job postings collected from **Hugging Face** and **Kaggle**
-in one place. Use **Filters** on the left, then open the tabs to compare **sources**, see **volume over time**,
-and **browse** individual jobs (with links and CSV export).
+in one place. Use **Filters** on the left, then open the tabs for **sources**, **trends**, **skills by year**,
+**top employers**, and **browse** with CSV export.
         """.strip()
     )
 
@@ -238,13 +216,15 @@ and **browse** individual jobs (with links and CSV export).
     if complete_n is not None:
         m4.metric("Quality: complete rows", f"{complete_n:,}", help="Rows with title and description or skills.")
     else:
-        m4.metric("Tip", "Use tabs →", help="Compare sources, trends, then browse jobs.")
+        m4.metric("Tip", "5 tabs →", help="Sources, trends, skills, companies, browse.")
 
-    tab_sources, tab_time, tab_browse = st.tabs(
+    tab_sources, tab_time, tab_skills, tab_companies, tab_browse = st.tabs(
         [
             "1 — Compare sources",
             "2 — Volume over time",
-            "3 — Browse & export",
+            "3 — Top skills by year",
+            "4 — Top hiring companies",
+            "5 — Browse & export",
         ]
     )
 
@@ -286,6 +266,104 @@ and **browse** individual jobs (with links and CSV export).
             st.dataframe(tdf, use_container_width=True, hide_index=True)
         else:
             st.info("No dated rows for these filters, or `posted_date` is empty.")
+
+    with tab_skills:
+        st.markdown(
+            "**Top 10 skills per calendar year** (from parsed `skills` on each job row). "
+            "Rows need a **non-null `posted_date`** and at least one skill; respects the same filters as other tabs."
+        )
+        if not table_has_column(client, jobs_fqn, "skills"):
+            st.warning("This dataset has no **`skills`** column — skip this tab or use a union that includes skills.")
+        else:
+            unnest_sql = skills_normalized_array_sql("skills")
+            sql_skills = f"""
+            WITH filtered_jobs AS (
+              SELECT posted_date, skills
+              FROM {jobs_fqn}
+              WHERE {where_sql}
+                AND posted_date IS NOT NULL
+            ),
+            skill_rows AS (
+              SELECT
+                EXTRACT(YEAR FROM posted_date) AS job_year,
+                TRIM(skill) AS skill
+              FROM filtered_jobs,
+              UNNEST({unnest_sql}) AS skill
+              WHERE TRIM(skill) IS NOT NULL AND skill != ''
+            ),
+            year_skill_counts AS (
+              SELECT job_year, skill, COUNT(*) AS skill_count
+              FROM skill_rows
+              GROUP BY 1, 2
+            ),
+            ranked AS (
+              SELECT
+                job_year,
+                skill,
+                skill_count,
+                ROW_NUMBER() OVER (PARTITION BY job_year ORDER BY skill_count DESC, skill ASC) AS rank_in_year
+              FROM year_skill_counts
+            )
+            SELECT job_year, skill, skill_count, rank_in_year
+            FROM ranked
+            WHERE rank_in_year <= 10
+            ORDER BY job_year DESC, rank_in_year ASC
+            """
+            try:
+                skill_rows = run_query(client, sql_skills, params)
+            except Exception as e:
+                st.error(f"Could not run skills query: {e}")
+                skill_rows = []
+            if not skill_rows:
+                st.info(
+                    "No skill mentions for these filters. Ensure ingestion populated **`skills`** "
+                    "(e.g. taxonomy extraction for some Kaggle sources; see docs/MASTER_TABLE_SPEC.md)."
+                )
+            else:
+                sdf = pd.DataFrame(skill_rows)
+                years = sorted({int(y) for y in sdf["job_year"].dropna().tolist()}, reverse=True)
+                pick = st.selectbox("Year to chart", options=years, index=0, key="skills_year_pick")
+                sub = sdf[sdf["job_year"] == int(pick)].sort_values("rank_in_year")
+                chart_df = sub.set_index("skill")[["skill_count"]].sort_values("skill_count")
+                st.bar_chart(chart_df)
+                st.caption("Full top-10 list per year (table below).")
+                st.dataframe(
+                    sdf.sort_values(["job_year", "rank_in_year"], ascending=[False, True]),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+    with tab_companies:
+        st.markdown(
+            "**Top 10 organizations by posting count** in the filtered set (non-empty **`company_name`**). "
+            "Useful for seeing who is hiring most often in the current slice of data."
+        )
+        if not table_has_column(client, jobs_fqn, "company_name"):
+            st.warning("No **`company_name`** column on this relation.")
+        else:
+            sql_co = f"""
+            SELECT TRIM(company_name) AS company_name, COUNT(*) AS job_count
+            FROM {jobs_fqn}
+            WHERE {where_sql}
+              AND company_name IS NOT NULL
+              AND TRIM(company_name) != ''
+            GROUP BY 1
+            ORDER BY job_count DESC
+            LIMIT 10
+            """
+            try:
+                co_rows = run_query(client, sql_co, params)
+            except Exception as e:
+                st.error(f"Could not run company ranking query: {e}")
+                co_rows = []
+            if not co_rows:
+                st.info("No companies match these filters, or `company_name` is mostly empty.")
+            else:
+                cdf = pd.DataFrame(co_rows)
+                st.bar_chart(
+                    cdf.set_index("company_name")[["job_count"]].sort_values("job_count")
+                )
+                st.dataframe(cdf, use_container_width=True, hide_index=True)
 
     with tab_browse:
         st.markdown(
@@ -329,7 +407,8 @@ and **browse** individual jobs (with links and CSV export).
             """
 - **Data location:** BigQuery — a combined **`master_jobs`** view is recommended; otherwise a single **`raw_*`** table.
 - **Reload pipeline:** ingest → **`scripts/load_gcs_to_bigquery.py`** → optional **`scripts/create_master_table.py`**.
-- **Credentials:** The server or your laptop supplies GCP access (e.g. Cloud Run service account or `gcloud auth application-default login`). This screen does **not** show project IDs or account names.
+- **Credentials:** The server or your laptop supplies GCP access (e.g. Cloud Run SA or
+  `gcloud auth application-default login`). This UI does **not** show project IDs or account names.
             """.strip()
         )
 
