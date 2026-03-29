@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # End-to-end BATCH pipeline (orchestrated sequence): data lake → warehouse → optional master → optional dbt.
-# This repo uses batch ingestion (not Kafka/Pulsar). For peer review / rubric: one linear "DAG" of steps.
+# This repo uses batch ingestion (not Kafka/Pulsar). One linear scripted sequence (lake → warehouse → dbt).
 #
 # Usage (from repo root):
 #   chmod +x scripts/run_batch_pipeline.sh

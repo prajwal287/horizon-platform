@@ -100,7 +100,7 @@ chmod +x scripts/run_batch_pipeline.sh
 # or: SKIP_DBT=1 ./scripts/run_batch_pipeline.sh   # then run dbt separately
 ```
 
-This runs **lake → `raw_*` → `master_jobs` → dbt** in order (see **`docs/PROJECT_OVERVIEW.md`** for rubric mapping).
+This runs **lake → `raw_*` → `master_jobs` → dbt** in order (criteria breakdown: **`docs/PROJECT_OVERVIEW.md`**).
 
 ---
 
@@ -151,7 +151,7 @@ streamlit run streamlit_app/app.py
 
 Or: `docker compose up streamlit` → http://localhost:8501
 
-**Cloud Run:** [GUIDE_GCP_HOSTING.md](GUIDE_GCP_HOSTING.md). HTTPS URL: `terraform -chdir=terraform output -raw streamlit_service_uri`. Root [README.md](../README.md) has quick links + rubric.
+**Cloud Run:** [GUIDE_GCP_HOSTING.md](GUIDE_GCP_HOSTING.md). HTTPS URL: `terraform -chdir=terraform output -raw streamlit_service_uri`. Root [README.md](../README.md) has quick links and criteria summary.
 
 ---
 

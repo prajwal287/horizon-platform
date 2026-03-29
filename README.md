@@ -22,7 +22,7 @@ Deploy or refresh hosting: **[docs/GUIDE_GCP_HOSTING.md](docs/GUIDE_GCP_HOSTING.
 
 **Pain:** No single, repeatable place to **land** data in a lake, **load** it into a warehouse, **transform** it for analysis, and **explore** trends (by source, over time, skills, employers).
 
-**Outcome:** This repo implements a **cloud-first batch pipeline** plus a **browser dashboard** so reviewers can reproduce **ingestion → lake → BigQuery → dbt → UI** without one-off notebooks only.
+**Outcome:** This repo implements a **cloud-first batch pipeline** plus a **browser dashboard** so you can reproduce **ingestion → lake → BigQuery → dbt → UI** end-to-end—without relying on ad-hoc notebooks alone.
 
 ---
 
@@ -38,23 +38,23 @@ Deploy or refresh hosting: **[docs/GUIDE_GCP_HOSTING.md](docs/GUIDE_GCP_HOSTING.
 
 ---
 
-## Course / peer evaluation criteria — how this repo maps
+## Project coverage — typical course / assignment criteria
 
-Below is the same rubric many capstone and peer-review sheets ask for. **This project targets the “batch” path** (not Kafka streaming). Streaming rows are marked **N/A**.
+**All of the following metrics are addressed in this repository.** The data path is **batch** (dlt → GCS → BigQuery → dbt); a separate Kafka-style streaming stack is **not** part of the design—that row is intentionally **not applicable**.
 
-| Criterion | Points | How Horizon addresses it |
-|-----------|--------|---------------------------|
-| **Problem description** | **4** | Clear **who/what/why** above and in [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md): fragmented sources → unified lakehouse + dashboard. |
-| **Cloud** | **4** | **GCP**: GCS, BigQuery, IAM, optional Cloud Run — not local-only. |
-| **IaC** | **4** (with Cloud) | **`terraform/`**: bucket, dataset, Pub/Sub, service accounts, optional Streamlit — see [terraform/README.md](terraform/README.md). |
-| **Batch / workflow orchestration** | **4** | **`scripts/run_batch_pipeline.sh`**: multiple ordered steps—**lake** (dlt → GCS) → **warehouse** (`raw_*`) → **`master_jobs`** → **dbt**. |
-| **Stream** (Kafka, etc.) | **N/A** | **Batch** is the chosen path; streaming is not claimed. |
-| **Data warehouse** | **4** | **BigQuery** `raw_*`, `master_jobs`, dbt datasets. **Partition + cluster** on **`mart_jobs_curated`** and **`mart_posting_volume`** (see [docs/GUIDE_DLT_DBT.md](docs/GUIDE_DLT_DBT.md)). |
-| **Transformations** | **4** | **dbt** medallion (not ad-hoc SQL only): `dbt/` bronze → silver → gold. |
-| **Dashboard** | **4** | **Streamlit** with **≥2** chart tiles: **categorical** (counts by `source_id`) + **temporal** (monthly volume); plus skills-by-year, top companies, browse/CSV. |
-| **Reproducibility** | **4** | **`.env.example`**, **`terraform/terraform.tfvars.example`**, **[docs/GUIDE_END_TO_END.md](docs/GUIDE_END_TO_END.md)**, Docker Compose, **dbt** profile example, CI (`.github/workflows/ci.yml`). |
+| Criterion | How Horizon addresses it |
+|-----------|---------------------------|
+| **Problem description** | Clear **who/what/why** above and in [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md): fragmented sources → unified lakehouse + dashboard. |
+| **Cloud** | **GCP**: GCS, BigQuery, IAM, optional Cloud Run — not local-only. |
+| **IaC** | **`terraform/`**: bucket, dataset, Pub/Sub, service accounts, optional Streamlit — see [terraform/README.md](terraform/README.md). |
+| **Batch / workflow orchestration** | **`scripts/run_batch_pipeline.sh`**: multiple ordered steps—**lake** (dlt → GCS) → **warehouse** (`raw_*`) → **`master_jobs`** → **dbt**. |
+| **Stream** (Kafka, etc.) | **Batch** is the chosen path; streaming is not claimed. |
+| **Data warehouse** | **BigQuery** `raw_*`, `master_jobs`, dbt datasets. **Partition + cluster** on **`mart_jobs_curated`** and **`mart_posting_volume`** (see [docs/GUIDE_DLT_DBT.md](docs/GUIDE_DLT_DBT.md)). |
+| **Transformations** | **dbt** medallion (not ad-hoc SQL only): `dbt/` bronze → silver → gold. |
+| **Dashboard** | **Streamlit** with **≥2** chart tiles: **categorical** (counts by `source_id`) + **temporal** (monthly volume); plus skills-by-year, top companies, browse/CSV. |
+| **Reproducibility** | **`.env.example`**, **`terraform/terraform.tfvars.example`**, **[docs/GUIDE_END_TO_END.md](docs/GUIDE_END_TO_END.md)**, Docker Compose, **dbt** profile example, CI (`.github/workflows/ci.yml`). |
 
-**Story + rubric detail:** [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md).
+**Deeper walkthrough:** [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md).
 
 ---
 
@@ -88,7 +88,7 @@ docker compose run --rm app python scripts/create_master_table.py --clean
 | Doc | Purpose |
 |-----|---------|
 | [docs/README.md](docs/README.md) | Doc hub |
-| [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md) | Narrative for peers + rubric |
+| [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md) | Full narrative + criteria breakdown |
 | [docs/GUIDE_END_TO_END.md](docs/GUIDE_END_TO_END.md) | Step-by-step runbook |
 | [docs/GUIDE_GCP_HOSTING.md](docs/GUIDE_GCP_HOSTING.md) | Cloud Run, image push, IAM |
 | [docs/GUIDE_DLT_DBT.md](docs/GUIDE_DLT_DBT.md) | dlt vs dbt, partitions |

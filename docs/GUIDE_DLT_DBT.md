@@ -42,7 +42,7 @@ After `raw_*` exist:
 | **Silver** | `_dbt_silver` | Union, standardize skills, dedupe, skills-long. |
 | **Gold** | `_dbt_gold` | `mart_jobs_curated`, volumes, skill demand, URL overlap. |
 
-**BigQuery layout (peer review / cost):** `mart_jobs_curated` is materialized as a **table** **partitioned by month on `posted_date`** and **clustered by `source_id` and `content_quality_bucket`** so filters like “these sources, this date range, this quality bucket” prune partitions/blocks. `mart_posting_volume` is **partitioned on `posting_month`** and **clustered by `source_id`** for monthly trends by provider—the same shapes the Streamlit app charts use. Other gold models stay **views** where they are small aggregates.
+**BigQuery layout (cost + query patterns):** `mart_jobs_curated` is materialized as a **table** **partitioned by month on `posted_date`** and **clustered by `source_id` and `content_quality_bucket`** so filters like “these sources, this date range, this quality bucket” prune partitions/blocks. `mart_posting_volume` is **partitioned on `posting_month`** and **clustered by `source_id`** for monthly trends by provider—the same shapes the Streamlit app charts use. Other gold models stay **views** where they are small aggregates.
 
 **Run:** `cd dbt && dbt run && dbt test`  
 Profile: copy `dbt/profiles.yml.example` → `~/.dbt/profiles.yml`.
@@ -93,6 +93,6 @@ Profile: copy `dbt/profiles.yml.example` → `~/.dbt/profiles.yml`.
 
 ---
 
-## Mental model for peers / interviews
+## Mental model for explaining the stack
 
 > “We use **dlt** to batch-ingest heterogeneous job JSON/CSV into **Parquet on GCS**, then a **deterministic loader** moves Parquet into **BigQuery raw tables**. **dbt** builds medallion models so dashboards and analysts hit **curated marts**, not one-off notebook SQL.”
