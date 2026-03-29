@@ -1,6 +1,15 @@
 variable "project_id" {
   description = "GCP Project ID (set in terraform.tfvars; do not commit real tfvars)"
   type        = string
+
+  validation {
+    condition = (
+      var.project_id == lower(var.project_id) &&
+      length(var.project_id) >= 6 &&
+      var.project_id != "your_gcp_project_id"
+    )
+    error_message = "Use your real GCP project ID: lowercase letters, digits, hyphens only (e.g. horizon-platform-488122). Replace the YOUR_GCP_PROJECT_ID placeholder from the example — never apply with the literal placeholder."
+  }
 }
 
 variable "project_name" {

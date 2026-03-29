@@ -14,6 +14,19 @@ provider "google" {
   region  = var.region
 }
 
+locals {
+  # GCP label values: lowercase, no spaces; [a-z0-9_-]{1,63}
+  project_label = substr(
+    replace(
+      replace(lower(trimspace(var.project_name)), " ", "-"),
+      "--",
+      "-",
+    ),
+    0,
+    63,
+  )
+}
+
 # ---------------------------------------------------------------------------
 # GCS Bucket - Raw data landing (Standard, lifecycle to Nearline after 90 days)
 # ---------------------------------------------------------------------------
@@ -34,7 +47,7 @@ resource "google_storage_bucket" "raw" {
   }
 
   labels = {
-    project = lower(var.project_name)
+    project = local.project_label
   }
 
   uniform_bucket_level_access = true
@@ -49,7 +62,7 @@ resource "google_bigquery_dataset" "job_market_analysis" {
   project    = var.project_id
 
   labels = {
-    project = lower(var.project_name)
+    project = local.project_label
   }
 }
 
@@ -61,7 +74,7 @@ resource "google_pubsub_topic" "job_stream_input" {
   project = var.project_id
 
   labels = {
-    project = lower(var.project_name)
+    project = local.project_label
   }
 }
 

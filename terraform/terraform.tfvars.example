@@ -1,8 +1,10 @@
 # Copy this file to terraform.tfvars to override defaults (optional).
 # From project root: cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 
-# Required — your GCP project (copy this file to terraform.tfvars; keep tfvars out of git)
-project_id   = "YOUR_GCP_PROJECT_ID"
+# Required — real GCP project ID (Console or: gcloud config get-value project). Lowercase only.
+# Do not apply with a fake string: bucket name becomes "${project_id}-job-lakehouse-raw" and must be valid DNS.
+project_id   = "your-real-gcp-project-id"
+# Display-oriented name; spaces become hyphens in GCS/BQ/Pub/Sub labels (GCP forbids spaces there).
 project_name = "My data lakehouse"
 
 # Optional: override other defaults
